@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daniels-Nutrifit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .view { display: none; }
+        .view.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <div id="app-container" class="p-6 max-w-lg mx-auto">
+        <h1 class="text-2xl font-bold mb-4">Daniels-Nutrifit</h1>
+        <div id="status-message" class="p-4 bg-yellow-100 rounded text-sm">Initialisiere Firebase...</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- SCHRITT: KOPIERE HIER DEINE AKTUELLE KONFIGURATION AUS DER FIREBASE KONSOLE ---
+        const firebaseConfig = {
+            // KOPIERE DIE WERTE AUS DER FIREBASE KONSOLE GENAU HIERHER:
+            apiKey: "AIzaSyAkE6oDbqneN62RiiqOgAlYOBjgEkKP9Cs",
+
+  authDomain: "nutrifit2-cf723.firebaseapp.com",
+
+  projectId: "nutrifit2-cf723",
+
+  storageBucket: "nutrifit2-cf723.firebasestorage.app",
+
+  messagingSenderId: "795433706697",
+
+  appId: "1:795433706697:web:6691186dc73419020b5918",
+
+  measurementId: "G-7GXMYBPY0J"
+
+        };
+
+        async function init() {
+            const status = document.getElementById('status-message');
+            try {
+                // 1. Initialisierung
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                window.db = getFirestore(app);
+
+                console.log("Firebase App initialisiert...");
+                
+                // 2. Anonymer Login
+                await signInAnonymously(auth);
+                
+                status.innerText = "Erfolgreich verbunden!";
+                status.className = "p-4 bg-green-100 rounded text-green-800 font-bold";
+                console.log("Login erfolgreich.");
+
+            } catch (err) {
+                console.error("DEBUG FEHLER:", err);
+                
+                // Ausführliche Fehlermeldung anzeigen
+                let errorText = "Fehler: " + err.code;
+                if(err.code === 'auth/configuration-not-found') {
+                    errorText = "Konfigurationsfehler! Überprüfe die API-Keys oder aktiviere Authentication in der Firebase Konsole.";
+                }
+                
+                status.innerHTML = `<span class="text-red-600 font-bold">${errorText}</span><br>
+                <small class="text-xs text-red-400">${err.message}</small>`;
+                status.className = "p-4 bg-red-50 rounded border border-red-200";
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
