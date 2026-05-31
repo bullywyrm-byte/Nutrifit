@@ -4,35 +4,160 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daniels-Nutrifit</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857', 900: '#064e3b' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .creator-tab.active-tab { border-bottom-width: 2px; border-color: #10b981; color: #059669; }
+    </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
 
-    <!-- Header ist jetzt FEST im HTML -->
-    <header class="bg-white p-4 shadow-md">
-        <nav class="flex gap-4 justify-center">
-            <button onclick="navigate('rezepte')" class="bg-blue-500 text-white px-4 py-2 rounded">Rezepte</button>
-            <button onclick="navigate('ernaehrung')" class="bg-blue-500 text-white px-4 py-2 rounded">Ernährung</button>
-            <button onclick="navigate('training')" class="bg-blue-500 text-white px-4 py-2 rounded">Training</button>
-            <button onclick="navigate('creator')" class="bg-blue-500 text-white px-4 py-2 rounded">Creator</button>
-        </nav>
+    <header class="bg-white shadow-sm z-10 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer" onclick="navigate('rezepte')">
+                        <i class="fa-solid fa-leaf text-brand-500 text-2xl"></i>
+                        <span class="font-bold text-xl tracking-tight text-gray-900">Daniels<span class="text-brand-500">-Nutrifit</span></span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-1 sm:space-x-4 overflow-x-auto no-scrollbar">
+                    <button onclick="navigate('rezepte')" id="nav-rezepte" class="nav-btn text-brand-600 bg-brand-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-utensils mr-1"></i> Rezepte</button>
+                    <button onclick="navigate('ernaehrung')" id="nav-ernaehrung" class="nav-btn text-gray-600 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-apple-whole mr-1"></i> Ernährung</button>
+                    <button onclick="navigate('training')" id="nav-training" class="nav-btn text-gray-600 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-dumbbell mr-1"></i> Training</button>
+                    <button onclick="navigate('creator')" id="nav-creator" class="nav-btn text-gray-400 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-lock mr-1"></i> Creator</button>
+                </div>
+            </div>
+        </div>
     </header>
 
-    <!-- Feedback Bereich -->
-    <div id="status" class="text-center p-2 bg-green-200">Warte auf Verbindung...</div>
-
-    <!-- Content Bereiche -->
-    <div id="view-rezepte" class="p-6"><h1>Rezepte</h1></div>
-    <div id="view-ernaehrung" class="p-6 hidden"><h1>Ernährung</h1></div>
-    <div id="view-training" class="p-6 hidden"><h1>Training</h1></div>
-    <div id="view-creator" class="p-6 hidden">
-        <input type="password" id="pass" placeholder="Passwort">
-        <button onclick="check()">Login</button>
+    <div id="firebase-error-banner" class="hidden bg-red-500 text-white text-center text-sm py-2 px-4 shadow-md z-50 flex justify-between items-center">
+        <span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Firebase nicht konfiguriert. App läuft im lokalen Modus.</span>
+        <button onclick="this.parentElement.classList.add('hidden')" class="text-white hover:text-red-200"><i class="fa-solid fa-xmark"></i></button>
     </div>
+
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 font-medium">Message</div>
+
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto relative pb-20">
+        
+        <div id="view-rezepte" class="view">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <h1 class="text-2xl font-bold text-gray-900">Alle Rezepte</h1>
+                <div class="relative w-full sm:w-64">
+                    <input type="text" id="recipe-search" placeholder="Rezepte suchen..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-brand-500" onkeyup="renderRecipesList()">
+                    <i class="fa-solid fa-search absolute left-4 top-3 text-gray-400"></i>
+                </div>
+            </div>
+            <div id="recipes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div id="view-recipe-detail" class="view hidden max-w-3xl mx-auto">
+            <button onclick="navigate('rezepte')" class="mb-4 text-brand-600 hover:text-brand-800 font-medium flex items-center"><i class="fa-solid fa-arrow-left mr-2"></i> Zurück</button>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <img id="detail-recipe-image" src="" alt="Rezept Bild" class="w-full h-64 object-cover hidden bg-brand-50">
+                <div class="p-6 md:p-8">
+                    <h1 id="detail-recipe-title" class="text-3xl font-bold text-gray-900 mb-6">Titel</h1>
+                    
+                    <div class="bg-brand-50 p-4 rounded-xl flex items-center justify-between mb-8">
+                        <span class="font-medium text-gray-700">Portionen:</span>
+                        <div class="flex items-center bg-white rounded-lg shadow-sm border border-brand-100">
+                            <button onclick="changePortions(-1)" class="w-10 h-10 text-brand-600 hover:bg-brand-50 rounded-l-lg"><i class="fa-solid fa-minus"></i></button>
+                            <div id="detail-portions" class="w-12 text-center font-bold text-lg">1</div>
+                            <button onclick="changePortions(1)" class="w-10 h-10 text-brand-600 hover:bg-brand-50 rounded-r-lg"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-basket-shopping text-brand-500 mr-2"></i> Zutaten</h2>
+                            <ul id="detail-ingredients" class="space-y-3"></ul>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-chart-pie text-brand-500 mr-2"></i> Nährwerte</h2>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-50 p-4 rounded-xl text-center"><div id="detail-kcal" class="text-2xl font-bold">0</div><div class="text-xs text-gray-500">kcal</div></div>
+                                <div class="bg-blue-50 p-4 rounded-xl text-center"><div id="detail-protein" class="text-2xl font-bold text-blue-900">0</div><div class="text-xs text-blue-500">Protein (g)</div></div>
+                                <div class="bg-orange-50 p-4 rounded-xl text-center"><div id="detail-carbs" class="text-2xl font-bold text-orange-900">0</div><div class="text-xs text-orange-500">Carbs (g)</div></div>
+                                <div class="bg-yellow-50 p-4 rounded-xl text-center"><div id="detail-fat" class="text-2xl font-bold text-yellow-900">0</div><div class="text-xs text-yellow-600">Fett (g)</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 pt-8 border-t border-gray-100">
+                        <h2 class="text-xl font-bold mb-4">Zubereitung</h2>
+                        <div id="detail-instructions" class="text-gray-700 whitespace-pre-wrap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-ernaehrung" class="view hidden">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Ernährung</h1>
+            <div id="nutrition-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div id="view-training" class="view hidden">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Training</h1>
+            <div id="training-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div id="view-creator" class="view hidden">
+            <div id="creator-login" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center mt-10">
+                <i class="fa-solid fa-lock text-brand-500 text-4xl mb-4"></i>
+                <h2 class="text-2xl font-bold mb-6">Creator Login</h2>
+                <input type="password" id="creator-password" placeholder="Passwort (31124775)" class="w-full px-4 py-2 border rounded-lg mb-4 text-center">
+                <button onclick="loginCreator()" class="w-full bg-brand-600 text-white py-2 rounded-lg font-bold">Einloggen</button>
+            </div>
+
+            <div id="creator-dashboard" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold">Creator Dashboard</h1>
+                    <button onclick="location.reload()" class="text-red-500 hover:underline"><i class="fa-solid fa-sign-out-alt"></i> Logout</button>
+                </div>
+                
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-bold mb-4">Neues Rezept anlegen</h2>
+                    <input type="text" id="new-recipe-title" placeholder="Rezept Name" class="w-full px-4 py-2 border rounded-lg mb-4">
+                    <input type="url" id="new-recipe-image" placeholder="Bild URL (optional)" class="w-full px-4 py-2 border rounded-lg mb-4">
+                    <textarea id="new-recipe-instructions" placeholder="Zubereitungsanleitung..." class="w-full px-4 py-2 border rounded-lg mb-4 h-24"></textarea>
+                    
+                    <h3 class="font-bold mb-2">Makronährstoffe (Gesamt)</h3>
+                    <div class="grid grid-cols-4 gap-2 mb-6">
+                        <input type="number" id="new-kcal" placeholder="Kcal" class="w-full border p-2 rounded">
+                        <input type="number" id="new-prot" placeholder="Protein" class="w-full border p-2 rounded">
+                        <input type="number" id="new-carb" placeholder="Carbs" class="w-full border p-2 rounded">
+                        <input type="number" id="new-fat" placeholder="Fett" class="w-full border p-2 rounded">
+                    </div>
+                    
+                    <button onclick="saveRecipe()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg"><i class="fa-solid fa-save mr-2"></i> Rezept speichern</button>
+                </div>
+                
+                <div class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-bold mb-4">Vorhandene Einträge</h2>
+                    <div id="creator-manage-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDr4b7ZZcq76oIST9uvjVYLHwELja5V5bA",
@@ -43,24 +168,199 @@
             appId: "1:497621585681:web:5f3bc0d1c0e6fcc66346b0"
         };
 
-        try {
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            await signInAnonymously(auth);
-            document.getElementById('status').textContent = "Erfolgreich verbunden!";
-        } catch(e) {
-            document.getElementById('status').textContent = "Fehler: " + e.message;
+        window.useLocalMode = false;
+        window.recipesData = [];
+
+        async function initApp() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                window.db = getFirestore(app);
+                
+                // Wir versuchen uns anzumelden
+                await signInAnonymously(auth);
+                console.log("Firebase erfolgreich verbunden.");
+                
+                // Daten laden
+                onSnapshot(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'recipes'), (snap) => {
+                    window.recipesData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    window.renderRecipesList();
+                    if(window.currentView === 'creator') window.renderManageList();
+                });
+
+            } catch (err) {
+                console.warn("Firebase fehlgeschlagen. Aktiviere LocalMode.", err);
+                window.useLocalMode = true;
+                document.getElementById('firebase-error-banner').classList.remove('hidden');
+                
+                // Lade Daten aus LocalStorage als Fallback
+                const localData = localStorage.getItem('nutrifit_recipes');
+                window.recipesData = localData ? JSON.parse(localData) : [];
+                window.renderRecipesList();
+            }
+        }
+
+        initApp();
+
+        // Firebase / Local Save Adapter
+        window.saveDataAdapter = async function(data) {
+            if(window.useLocalMode) {
+                const newItem = { id: Date.now().toString(), ...data };
+                window.recipesData.push(newItem);
+                localStorage.setItem('nutrifit_recipes', JSON.stringify(window.recipesData));
+                window.renderRecipesList();
+                window.renderManageList();
+                return true;
+            } else {
+                await addDoc(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'recipes'), data);
+                return true;
+            }
+        }
+
+        window.deleteDataAdapter = async function(id) {
+            if(window.useLocalMode) {
+                window.recipesData = window.recipesData.filter(r => r.id !== id);
+                localStorage.setItem('nutrifit_recipes', JSON.stringify(window.recipesData));
+                window.renderRecipesList();
+                window.renderManageList();
+            } else {
+                await deleteDoc(doc(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'recipes', id));
+            }
         }
     </script>
 
     <script>
-        function navigate(id) {
-            document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
-            document.getElementById('view-' + id).classList.remove('hidden');
+        window.currentView = 'rezepte';
+        window.currentRecipe = null;
+        window.currentPortions = 1;
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
         }
-        function check() {
-            if(document.getElementById('pass').value === "31124775") alert("Login ok!");
-            else alert("Falsch");
+
+        function navigate(view) {
+            window.currentView = view;
+            document.querySelectorAll('.view').forEach(e => e.classList.add('hidden'));
+            document.getElementById('view-' + view).classList.remove('hidden');
+            
+            // Buttons aktualisieren
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('text-brand-600', 'bg-brand-50');
+                b.classList.add('text-gray-600');
+            });
+            const activeBtn = document.getElementById('nav-' + view);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-gray-600');
+                activeBtn.classList.add('text-brand-600', 'bg-brand-50');
+            }
+        }
+
+        window.renderRecipesList = function() {
+            const grid = document.getElementById('recipes-grid');
+            const search = document.getElementById('recipe-search').value.toLowerCase();
+            const data = window.recipesData || [];
+            
+            const filtered = data.filter(r => r.title.toLowerCase().includes(search));
+            
+            if(filtered.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">Keine Rezepte gefunden.</div>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(r => `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer overflow-hidden" onclick="openRecipe('${r.id}')">
+                    <img src="${r.imageUrl || 'https://placehold.co/400x300/e2e8f0/64748b?text=Rezept'}" class="w-full h-40 object-cover" onerror="this.src='https://placehold.co/400x300/e2e8f0/64748b?text=Rezept'">
+                    <div class="p-4"><h3 class="font-bold text-lg text-gray-800">${r.title}</h3></div>
+                </div>
+            `).join('');
+        }
+
+        function openRecipe(id) {
+            window.currentRecipe = window.recipesData.find(r => r.id === id);
+            window.currentPortions = 1;
+            navigate('recipe-detail');
+            updateRecipeUI();
+        }
+
+        function changePortions(delta) {
+            if(window.currentPortions + delta > 0) {
+                window.currentPortions += delta;
+                updateRecipeUI();
+            }
+        }
+
+        function updateRecipeUI() {
+            const r = window.currentRecipe;
+            if(!r) return;
+            
+            document.getElementById('detail-recipe-title').textContent = r.title;
+            const img = document.getElementById('detail-recipe-image');
+            img.src = r.imageUrl || '';
+            img.classList.toggle('hidden', !r.imageUrl);
+            
+            document.getElementById('detail-portions').textContent = window.currentPortions;
+            document.getElementById('detail-instructions').textContent = r.instructions || 'Keine Anleitung.';
+            
+            const mult = window.currentPortions;
+            document.getElementById('detail-kcal').textContent = ((r.kcal || 0) * mult);
+            document.getElementById('detail-protein').textContent = ((r.prot || 0) * mult);
+            document.getElementById('detail-carbs').textContent = ((r.carb || 0) * mult);
+            document.getElementById('detail-fat').textContent = ((r.fat || 0) * mult);
+        }
+
+        // Creator Funktionen
+        function loginCreator() {
+            if(document.getElementById('creator-password').value === '31124775') {
+                document.getElementById('creator-login').classList.add('hidden');
+                document.getElementById('creator-dashboard').classList.remove('hidden');
+                window.renderManageList();
+            } else {
+                showToast("Falsches Passwort!");
+            }
+        }
+
+        async function saveRecipe() {
+            const title = document.getElementById('new-recipe-title').value;
+            if(!title) return showToast("Bitte einen Titel eingeben!");
+
+            const data = {
+                title: title,
+                imageUrl: document.getElementById('new-recipe-image').value,
+                instructions: document.getElementById('new-recipe-instructions').value,
+                kcal: Number(document.getElementById('new-kcal').value) || 0,
+                prot: Number(document.getElementById('new-prot').value) || 0,
+                carb: Number(document.getElementById('new-carb').value) || 0,
+                fat: Number(document.getElementById('new-fat').value) || 0
+            };
+
+            await window.saveDataAdapter(data);
+            showToast("Rezept gespeichert!");
+            
+            // Felder leeren
+            document.getElementById('new-recipe-title').value = '';
+            document.getElementById('new-recipe-image').value = '';
+            document.getElementById('new-recipe-instructions').value = '';
+            document.getElementById('new-kcal').value = '';
+            document.getElementById('new-prot').value = '';
+            document.getElementById('new-carb').value = '';
+            document.getElementById('new-fat').value = '';
+        }
+
+        window.renderManageList = function() {
+            const list = document.getElementById('creator-manage-list');
+            if(!window.recipesData || window.recipesData.length === 0) {
+                list.innerHTML = '<p class="text-sm text-gray-500">Keine Einträge vorhanden.</p>';
+                return;
+            }
+            list.innerHTML = window.recipesData.map(r => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                    <span class="font-medium">${r.title}</span>
+                    <button onclick="window.deleteDataAdapter('${r.id}')" class="text-red-500 hover:text-red-700 px-3 py-1"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('');
         }
     </script>
 </body>
