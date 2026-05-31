@@ -5,77 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daniels-Nutrifit</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        .view { display: none; }
-        .view.active { display: block; }
-    </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-100">
 
-    <div id="app-container" class="p-6 max-w-lg mx-auto">
-        <h1 class="text-2xl font-bold mb-4">Daniels-Nutrifit</h1>
-        <div id="status-message" class="p-4 bg-yellow-100 rounded text-sm">Initialisiere Firebase...</div>
+    <!-- Header ist jetzt FEST im HTML -->
+    <header class="bg-white p-4 shadow-md">
+        <nav class="flex gap-4 justify-center">
+            <button onclick="navigate('rezepte')" class="bg-blue-500 text-white px-4 py-2 rounded">Rezepte</button>
+            <button onclick="navigate('ernaehrung')" class="bg-blue-500 text-white px-4 py-2 rounded">Ernährung</button>
+            <button onclick="navigate('training')" class="bg-blue-500 text-white px-4 py-2 rounded">Training</button>
+            <button onclick="navigate('creator')" class="bg-blue-500 text-white px-4 py-2 rounded">Creator</button>
+        </nav>
+    </header>
+
+    <!-- Feedback Bereich -->
+    <div id="status" class="text-center p-2 bg-green-200">Warte auf Verbindung...</div>
+
+    <!-- Content Bereiche -->
+    <div id="view-rezepte" class="p-6"><h1>Rezepte</h1></div>
+    <div id="view-ernaehrung" class="p-6 hidden"><h1>Ernährung</h1></div>
+    <div id="view-training" class="p-6 hidden"><h1>Training</h1></div>
+    <div id="view-creator" class="p-6 hidden">
+        <input type="password" id="pass" placeholder="Passwort">
+        <button onclick="check()">Login</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- SCHRITT: KOPIERE HIER DEINE AKTUELLE KONFIGURATION AUS DER FIREBASE KONSOLE ---
         const firebaseConfig = {
-            // KOPIERE DIE WERTE AUS DER FIREBASE KONSOLE GENAU HIERHER:
-            apiKey: "AIzaSyAkE6oDbqneN62RiiqOgAlYOBjgEkKP9Cs",
-
-  authDomain: "nutrifit2-cf723.firebaseapp.com",
-
-  projectId: "nutrifit2-cf723",
-
-  storageBucket: "nutrifit2-cf723.firebasestorage.app",
-
-  messagingSenderId: "795433706697",
-
-  appId: "1:795433706697:web:6691186dc73419020b5918",
-
-  measurementId: "G-7GXMYBPY0J"
-
+            apiKey: "AIzaSyDr4b7ZZcq76oIST9uvjVYLHwELja5V5bA",
+            authDomain: "daniels-nutrifit.firebaseapp.com",
+            projectId: "daniels-nutrifit",
+            storageBucket: "daniels-nutrifit.firebasestorage.app",
+            messagingSenderId: "497621585681",
+            appId: "1:497621585681:web:5f3bc0d1c0e6fcc66346b0"
         };
 
-        async function init() {
-            const status = document.getElementById('status-message');
-            try {
-                // 1. Initialisierung
-                const app = initializeApp(firebaseConfig);
-                const auth = getAuth(app);
-                window.db = getFirestore(app);
-
-                console.log("Firebase App initialisiert...");
-                
-                // 2. Anonymer Login
-                await signInAnonymously(auth);
-                
-                status.innerText = "Erfolgreich verbunden!";
-                status.className = "p-4 bg-green-100 rounded text-green-800 font-bold";
-                console.log("Login erfolgreich.");
-
-            } catch (err) {
-                console.error("DEBUG FEHLER:", err);
-                
-                // Ausführliche Fehlermeldung anzeigen
-                let errorText = "Fehler: " + err.code;
-                if(err.code === 'auth/configuration-not-found') {
-                    errorText = "Konfigurationsfehler! Überprüfe die API-Keys oder aktiviere Authentication in der Firebase Konsole.";
-                }
-                
-                status.innerHTML = `<span class="text-red-600 font-bold">${errorText}</span><br>
-                <small class="text-xs text-red-400">${err.message}</small>`;
-                status.className = "p-4 bg-red-50 rounded border border-red-200";
-            }
+        try {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            await signInAnonymously(auth);
+            document.getElementById('status').textContent = "Erfolgreich verbunden!";
+        } catch(e) {
+            document.getElementById('status').textContent = "Fehler: " + e.message;
         }
+    </script>
 
-        init();
+    <script>
+        function navigate(id) {
+            document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-' + id).classList.remove('hidden');
+        }
+        function check() {
+            if(document.getElementById('pass').value === "31124775") alert("Login ok!");
+            else alert("Falsch");
+        }
     </script>
 </body>
 </html>
