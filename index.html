@@ -4,58 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daniels-Nutrifit</title>
-    <!-- Tailwind CSS -->
+    
+    <!-- Externe Ressourcen -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Tailwind Konfiguration -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: { brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857', 900: '#064e3b' } }
+                    colors: {
+                        brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857', 900: '#064e3b' }
+                    }
                 }
             }
         }
     </script>
+    
+    <!-- Eigene Styles -->
     <style>
         body { -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .creator-tab.active-tab { border-bottom-width: 2px; border-color: #10b981; color: #059669; }
+        .editor-content { min-height: 150px; }
+        .editor-content:empty:before { content: attr(placeholder); color: #9ca3af; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
 
+    <!-- ================= HEADER & NAVIGATION ================= -->
     <header class="bg-white shadow-sm z-10 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
+                <!-- Logo -->
                 <div class="flex items-center">
                     <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer" onclick="navigate('rezepte')">
                         <i class="fa-solid fa-leaf text-brand-500 text-2xl"></i>
                         <span class="font-bold text-xl tracking-tight text-gray-900">Daniels<span class="text-brand-500">-Nutrifit</span></span>
                     </div>
                 </div>
+                
+                <!-- Navigations-Buttons -->
                 <div class="flex items-center space-x-1 sm:space-x-4 overflow-x-auto no-scrollbar">
-                    <button onclick="navigate('rezepte')" id="nav-rezepte" class="nav-btn text-brand-600 bg-brand-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-utensils mr-1"></i> Rezepte</button>
-                    <button onclick="navigate('ernaehrung')" id="nav-ernaehrung" class="nav-btn text-gray-600 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-apple-whole mr-1"></i> Ernährung</button>
-                    <button onclick="navigate('training')" id="nav-training" class="nav-btn text-gray-600 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-dumbbell mr-1"></i> Training</button>
-                    <button onclick="navigate('creator')" id="nav-creator" class="nav-btn text-gray-400 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"><i class="fa-solid fa-lock mr-1"></i> Creator</button>
+                    <button onclick="navigate('rezepte')" id="nav-rezepte" class="nav-btn text-brand-600 bg-brand-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap">
+                        <i class="fa-solid fa-utensils mr-1"></i> Rezepte
+                    </button>
+                    <button onclick="navigate('ernaehrung')" id="nav-ernaehrung" class="nav-btn text-gray-600 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap">
+                        <i class="fa-solid fa-apple-whole mr-1"></i> Ernährung
+                    </button>
+                    <button onclick="navigate('training')" id="nav-training" class="nav-btn text-gray-600 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap">
+                        <i class="fa-solid fa-dumbbell mr-1"></i> Training
+                    </button>
+                    <button onclick="navigate('creator')" id="nav-creator" class="nav-btn text-gray-400 hover:text-brand-600 hover:bg-gray-50 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap">
+                        <i class="fa-solid fa-lock mr-1"></i> Creator
+                    </button>
                 </div>
             </div>
         </div>
     </header>
 
-    <div id="firebase-error-banner" class="hidden bg-red-500 text-white text-center text-sm py-2 px-4 shadow-md z-50 flex justify-between items-center">
-        <span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Firebase nicht konfiguriert. App läuft im lokalen Modus.</span>
-        <button onclick="this.parentElement.classList.add('hidden')" class="text-white hover:text-red-200"><i class="fa-solid fa-xmark"></i></button>
+    <!-- ================= UI FEEDBACK (Spinner & Toast) ================= -->
+    <div id="loading-spinner" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50 z-50">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500 mb-4"></div>
+        <p id="loading-text" class="text-gray-500 font-medium">Verbinde mit Firebase Cloud...</p>
+    </div>
+    
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 font-medium">
+        Message
     </div>
 
-    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 font-medium">Message</div>
-
+    <!-- ================= HAUPTINHALT (Views) ================= -->
     <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto relative pb-20">
         
-        <div id="view-rezepte" class="view">
+        <!-- --- 1. ANSICHT: REZEPTE LISTE --- -->
+        <div id="view-rezepte" class="view hidden">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <h1 class="text-2xl font-bold text-gray-900">Alle Rezepte</h1>
                 <div class="relative w-full sm:w-64">
@@ -66,98 +91,175 @@
             <div id="recipes-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
 
+        <!-- --- 2. ANSICHT: REZEPT DETAILS --- -->
         <div id="view-recipe-detail" class="view hidden max-w-3xl mx-auto">
-            <button onclick="navigate('rezepte')" class="mb-4 text-brand-600 hover:text-brand-800 font-medium flex items-center"><i class="fa-solid fa-arrow-left mr-2"></i> Zurück</button>
+            <button onclick="navigate('rezepte')" class="mb-4 text-brand-600 hover:text-brand-800 font-medium flex items-center">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Zurück
+            </button>
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <img id="detail-recipe-image" src="" alt="Rezept Bild" class="w-full h-64 object-cover hidden bg-brand-50">
                 <div class="p-6 md:p-8">
                     <h1 id="detail-recipe-title" class="text-3xl font-bold text-gray-900 mb-6">Titel</h1>
                     
+                    <!-- Portionen-Rechner -->
                     <div class="bg-brand-50 p-4 rounded-xl flex items-center justify-between mb-8">
-                        <span class="font-medium text-gray-700">Portionen:</span>
+                        <span class="font-medium text-gray-700">Portionen anpassen:</span>
                         <div class="flex items-center bg-white rounded-lg shadow-sm border border-brand-100">
-                            <button onclick="changePortions(-1)" class="w-10 h-10 text-brand-600 hover:bg-brand-50 rounded-l-lg"><i class="fa-solid fa-minus"></i></button>
+                            <button onclick="changePortions(-1)" class="w-10 h-10 text-brand-600 hover:bg-brand-50 rounded-l-lg transition-colors"><i class="fa-solid fa-minus"></i></button>
                             <div id="detail-portions" class="w-12 text-center font-bold text-lg">1</div>
-                            <button onclick="changePortions(1)" class="w-10 h-10 text-brand-600 hover:bg-brand-50 rounded-r-lg"><i class="fa-solid fa-plus"></i></button>
+                            <button onclick="changePortions(1)" class="w-10 h-10 text-brand-600 hover:bg-brand-50 rounded-r-lg transition-colors"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
 
+                    <!-- Zutaten & Nährwerte -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
                             <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-basket-shopping text-brand-500 mr-2"></i> Zutaten</h2>
                             <ul id="detail-ingredients" class="space-y-3"></ul>
                         </div>
                         <div>
-                            <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-chart-pie text-brand-500 mr-2"></i> Nährwerte</h2>
+                            <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-chart-pie text-brand-500 mr-2"></i> Nährwerte (Gesamt)</h2>
                             <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-gray-50 p-4 rounded-xl text-center"><div id="detail-kcal" class="text-2xl font-bold">0</div><div class="text-xs text-gray-500">kcal</div></div>
-                                <div class="bg-blue-50 p-4 rounded-xl text-center"><div id="detail-protein" class="text-2xl font-bold text-blue-900">0</div><div class="text-xs text-blue-500">Protein (g)</div></div>
-                                <div class="bg-orange-50 p-4 rounded-xl text-center"><div id="detail-carbs" class="text-2xl font-bold text-orange-900">0</div><div class="text-xs text-orange-500">Carbs (g)</div></div>
-                                <div class="bg-yellow-50 p-4 rounded-xl text-center"><div id="detail-fat" class="text-2xl font-bold text-yellow-900">0</div><div class="text-xs text-yellow-600">Fett (g)</div></div>
+                                <div class="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
+                                    <div id="detail-kcal" class="text-2xl font-bold text-gray-900">0</div><div class="text-xs text-gray-500">kcal</div>
+                                </div>
+                                <div class="bg-blue-50 p-4 rounded-xl text-center border border-blue-100">
+                                    <div id="detail-protein" class="text-2xl font-bold text-blue-900">0</div><div class="text-xs text-blue-500">Protein (g)</div>
+                                </div>
+                                <div class="bg-orange-50 p-4 rounded-xl text-center border border-orange-100">
+                                    <div id="detail-carbs" class="text-2xl font-bold text-orange-900">0</div><div class="text-xs text-orange-500">Carbs (g)</div>
+                                </div>
+                                <div class="bg-yellow-50 p-4 rounded-xl text-center border border-yellow-100">
+                                    <div id="detail-fat" class="text-2xl font-bold text-yellow-900">0</div><div class="text-xs text-yellow-600">Fett (g)</div>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Zubereitung -->
                     <div class="mt-8 pt-8 border-t border-gray-100">
-                        <h2 class="text-xl font-bold mb-4">Zubereitung</h2>
+                        <h2 class="text-xl font-bold mb-4"><i class="fa-solid fa-list-ol text-brand-500 mr-2"></i> Zubereitung</h2>
                         <div id="detail-instructions" class="text-gray-700 whitespace-pre-wrap"></div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- --- 3. ANSICHT: ERNÄHRUNG --- -->
         <div id="view-ernaehrung" class="view hidden">
-            <h1 class="text-2xl font-bold text-gray-900 mb-6">Ernährung</h1>
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Ernährungswissen</h1>
             <div id="nutrition-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
 
+        <!-- --- 4. ANSICHT: TRAINING --- -->
         <div id="view-training" class="view hidden">
-            <h1 class="text-2xl font-bold text-gray-900 mb-6">Training</h1>
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Trainingspläne</h1>
             <div id="training-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
 
+        <!-- --- 5. ANSICHT: CONTENT DETAIL (Für Ernährung & Training) --- -->
+        <div id="view-content-detail" class="view hidden max-w-3xl mx-auto">
+            <button onclick="navigate(window.currentContentMode || 'rezepte')" class="mb-4 text-brand-600 hover:text-brand-800 font-medium flex items-center">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Zurück
+            </button>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <img id="detail-content-image" src="" alt="Beitragsbild" class="w-full h-64 object-cover hidden bg-gray-50">
+                <div class="p-6 md:p-8">
+                    <h1 id="detail-content-title" class="text-3xl font-bold text-gray-900 mb-6 pb-4 border-b border-gray-100">Titel</h1>
+                    <div id="detail-content-body" class="text-gray-800 max-w-none prose"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- 6. ANSICHT: CREATOR DASHBOARD --- -->
         <div id="view-creator" class="view hidden">
+            <!-- Creator Login -->
             <div id="creator-login" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center mt-10">
-                <i class="fa-solid fa-lock text-brand-500 text-4xl mb-4"></i>
-                <h2 class="text-2xl font-bold mb-6">Creator Login</h2>
+                <div class="w-16 h-16 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-lock text-brand-500 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-6">Creator Bereich</h2>
                 <input type="password" id="creator-password" placeholder="Passwort (31124775)" class="w-full px-4 py-2 border rounded-lg mb-4 text-center">
                 <button onclick="loginCreator()" class="w-full bg-brand-600 text-white py-2 rounded-lg font-bold">Einloggen</button>
             </div>
 
+            <!-- Creator Dashboard (Nach Login) -->
             <div id="creator-dashboard" class="hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-2xl font-bold">Creator Dashboard</h1>
-                    <button onclick="location.reload()" class="text-red-500 hover:underline"><i class="fa-solid fa-sign-out-alt"></i> Logout</button>
+                    <button onclick="location.reload()" class="text-red-500 hover:underline">
+                        <i class="fa-solid fa-sign-out-alt"></i> Logout
+                    </button>
                 </div>
                 
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-lg font-bold mb-4">Neues Rezept anlegen</h2>
-                    <input type="text" id="new-recipe-title" placeholder="Rezept Name" class="w-full px-4 py-2 border rounded-lg mb-4">
-                    <input type="url" id="new-recipe-image" placeholder="Bild URL (optional)" class="w-full px-4 py-2 border rounded-lg mb-4">
-                    <textarea id="new-recipe-instructions" placeholder="Zubereitungsanleitung..." class="w-full px-4 py-2 border rounded-lg mb-4 h-24"></textarea>
-                    
-                    <h3 class="font-bold mb-2">Makronährstoffe (Gesamt)</h3>
-                    <div class="grid grid-cols-4 gap-2 mb-6">
-                        <input type="number" id="new-kcal" placeholder="Kcal" class="w-full border p-2 rounded">
-                        <input type="number" id="new-prot" placeholder="Protein" class="w-full border p-2 rounded">
-                        <input type="number" id="new-carb" placeholder="Carbs" class="w-full border p-2 rounded">
-                        <input type="number" id="new-fat" placeholder="Fett" class="w-full border p-2 rounded">
+                <!-- Tab Navigation (Rezept, Ernährung, Training) -->
+                <div class="flex border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar">
+                    <button onclick="switchCreatorTab('recipe')" id="tab-recipe" class="creator-tab active-tab px-4 py-2 border-b-2 border-brand-500 text-brand-600 font-medium whitespace-nowrap"><i class="fa-solid fa-utensils mr-2"></i>Neues Rezept</button>
+                    <button onclick="switchCreatorTab('nutrition')" id="tab-nutrition" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-apple-whole mr-2"></i>Neue Ernährung</button>
+                    <button onclick="switchCreatorTab('training')" id="tab-training" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-dumbbell mr-2"></i>Neues Training</button>
+                </div>
+
+                <!-- Modul: Neues Rezept -->
+                <div id="creator-recipe" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 creator-panel">
+                    <input type="text" id="new-recipe-title" placeholder="Rezept Name (z.B. Protein Pancakes)" class="w-full px-4 py-2 border rounded-lg mb-4 font-bold text-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <input type="url" id="new-recipe-image" placeholder="Bild URL (optional)" class="w-full px-4 py-2 border rounded-lg">
+                        <input type="number" id="new-recipe-portions" placeholder="Standard Portionen (z.B. 1)" value="1" min="1" class="w-full px-4 py-2 border rounded-lg">
                     </div>
                     
-                    <button onclick="saveRecipe()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg"><i class="fa-solid fa-save mr-2"></i> Rezept speichern</button>
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="font-bold">Zutaten</label>
+                            <button onclick="addIngredientRow()" class="text-brand-600 bg-brand-50 px-2 py-1 rounded text-sm"><i class="fa-solid fa-plus"></i> Zutat</button>
+                        </div>
+                        <div id="ingredients-container" class="space-y-2 border p-3 rounded-lg bg-gray-50"></div>
+                    </div>
+                    
+                    <textarea id="new-recipe-instructions" placeholder="Zubereitungsanleitung..." class="w-full px-4 py-2 border rounded-lg mb-6 h-32"></textarea>
+                    
+                    <!-- Live Nährwerte Vorschau -->
+                    <div class="bg-brand-900 text-white p-4 rounded-xl mb-6">
+                        <h3 class="text-sm font-bold text-brand-300 mb-2">Gesamtnährwerte (Berechnet)</h3>
+                        <div class="flex gap-6">
+                            <div><span id="preview-kcal" class="font-bold text-xl">0</span> <small>kcal</small></div>
+                            <div><span id="preview-protein" class="font-bold text-xl">0</span> <small>Prot</small></div>
+                            <div><span id="preview-carbs" class="font-bold text-xl">0</span> <small>Carb</small></div>
+                            <div><span id="preview-fat" class="font-bold text-xl">0</span> <small>Fett</small></div>
+                        </div>
+                    </div>
+
+                    <button onclick="saveRecipe()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition-colors">Rezept speichern</button>
+                </div>
+
+                <!-- Modul: Content Editor (Ernährung / Training) -->
+                <div id="creator-content" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 creator-panel hidden">
+                    <input type="text" id="new-content-title" placeholder="Beitragstitel" class="w-full px-4 py-2 border rounded-lg mb-4 font-bold text-lg">
+                    <input type="url" id="new-content-image" placeholder="Bild URL (optional)" class="w-full px-4 py-2 border rounded-lg mb-4">
+                    
+                    <div class="border rounded-t-lg bg-gray-50 p-2 flex gap-2">
+                        <button onclick="document.execCommand('bold')" class="w-8 h-8 rounded hover:bg-gray-200"><i class="fa-solid fa-bold"></i></button>
+                        <button onclick="document.execCommand('italic')" class="w-8 h-8 rounded hover:bg-gray-200"><i class="fa-solid fa-italic"></i></button>
+                        <button onclick="document.execCommand('insertUnorderedList')" class="w-8 h-8 rounded hover:bg-gray-200"><i class="fa-solid fa-list-ul"></i></button>
+                    </div>
+                    <div id="new-content-body" contenteditable="true" class="editor-content w-full p-4 border border-t-0 rounded-b-lg mb-6 bg-white focus:outline-none" placeholder="Schreibe deinen Text hier..."></div>
+                    
+                    <button onclick="saveContent()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition-colors">Beitrag speichern</button>
                 </div>
                 
+                <!-- Modul: Verwaltung (Löschen) -->
                 <div class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-lg font-bold mb-4">Vorhandene Einträge</h2>
+                    <h2 class="text-lg font-bold mb-4">Einträge verwalten</h2>
                     <div id="creator-manage-list" class="space-y-2"></div>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- ================= FIREBASE INITIALISIERUNG ================= -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDr4b7ZZcq76oIST9uvjVYLHwELja5V5bA",
@@ -165,75 +267,98 @@
             projectId: "daniels-nutrifit",
             storageBucket: "daniels-nutrifit.firebasestorage.app",
             messagingSenderId: "497621585681",
-            appId: "1:497621585681:web:5f3bc0d1c0e6fcc66346b0"
+            appId: "1:497621585681:web:5f3bc0d1c0e6fcc66346b0",
+            measurementId: "G-5T79HKYX0H"
         };
-
-        window.useLocalMode = false;
-        window.recipesData = [];
 
         async function initApp() {
             try {
+                // 1. Firebase Starten
                 const app = initializeApp(firebaseConfig);
-                const auth = getAuth(app);
                 window.db = getFirestore(app);
+                const auth = getAuth(app);
                 
-                // Wir versuchen uns anzumelden
-                await signInAnonymously(auth);
-                console.log("Firebase erfolgreich verbunden.");
+                // 2. Anmelden versuchen (Fehler elegant abfangen!)
+                try {
+                    await signInAnonymously(auth);
+                    console.log("Erfolgreich mit Firebase Cloud verbunden!");
+                } catch (authErr) {
+                    console.warn("Firebase Auth Warnung:", authErr.message);
+                    console.log("App läuft weiter. Bitte 'Anonymous' in Firebase aktivieren, falls das Speichern fehlschlägt.");
+                }
                 
-                // Daten laden
-                onSnapshot(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'recipes'), (snap) => {
-                    window.recipesData = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    window.renderRecipesList();
-                    if(window.currentView === 'creator') window.renderManageList();
-                });
-
+                // 3. Daten aus der Datenbank laden
+                setupSubscriptions();
+                
+                // 4. UI freigeben
+                document.getElementById('loading-spinner').classList.add('hidden');
+                navigate('rezepte'); 
+                
             } catch (err) {
-                console.warn("Firebase fehlgeschlagen. Aktiviere LocalMode.", err);
-                window.useLocalMode = true;
-                document.getElementById('firebase-error-banner').classList.remove('hidden');
-                
-                // Lade Daten aus LocalStorage als Fallback
-                const localData = localStorage.getItem('nutrifit_recipes');
-                window.recipesData = localData ? JSON.parse(localData) : [];
-                window.renderRecipesList();
+                console.error("FIREBASE FEHLER:", err);
+                const spinner = document.getElementById('loading-spinner');
+                spinner.innerHTML = `
+                    <div class="text-center p-6 bg-white rounded-xl shadow-lg border-2 border-red-500 max-w-md">
+                        <i class="fa-solid fa-triangle-exclamation text-red-500 text-4xl mb-4"></i>
+                        <h2 class="text-xl font-bold mb-2 text-gray-900">Initialisierungs-Fehler</h2>
+                        <p class="text-gray-600 mb-4 text-sm">${err.message}</p>
+                    </div>
+                `;
             }
         }
 
+        // Lädt die Daten in Echtzeit aus der Cloud
+        function setupSubscriptions() {
+            // Rezepte abonnieren
+            onSnapshot(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'recipes'), (snap) => {
+                window.recipesData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                if (window.currentView === 'rezepte') renderRecipesList();
+                if (window.currentView === 'creator') renderManageList();
+            }, (err) => console.error("Firestore Lese-Fehler (Rezepte):", err));
+
+            // Ernährung abonnieren
+            onSnapshot(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'nutrition'), (snap) => {
+                window.nutritionData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                if (window.currentView === 'ernaehrung') renderNutritionList();
+                if (window.currentView === 'creator') renderManageList();
+            }, (err) => console.error("Firestore Lese-Fehler (Ernährung):", err));
+
+            // Training abonnieren
+            onSnapshot(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'training'), (snap) => {
+                window.trainingData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                if (window.currentView === 'training') renderTrainingList();
+                if (window.currentView === 'creator') renderManageList();
+            }, (err) => console.error("Firestore Lese-Fehler (Training):", err));
+        }
+
+        // Cloud-Speicher Funktionen global verfügbar machen
+        window.cloudAddDoc = async function(collectionName, data) {
+            data.createdAt = serverTimestamp();
+            await addDoc(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', collectionName), data);
+        }
+        window.cloudDeleteDoc = async function(collectionName, id) {
+            await deleteDoc(doc(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', collectionName, id));
+        }
+
+        // App-Initialisierung starten
         initApp();
-
-        // Firebase / Local Save Adapter
-        window.saveDataAdapter = async function(data) {
-            if(window.useLocalMode) {
-                const newItem = { id: Date.now().toString(), ...data };
-                window.recipesData.push(newItem);
-                localStorage.setItem('nutrifit_recipes', JSON.stringify(window.recipesData));
-                window.renderRecipesList();
-                window.renderManageList();
-                return true;
-            } else {
-                await addDoc(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'recipes'), data);
-                return true;
-            }
-        }
-
-        window.deleteDataAdapter = async function(id) {
-            if(window.useLocalMode) {
-                window.recipesData = window.recipesData.filter(r => r.id !== id);
-                localStorage.setItem('nutrifit_recipes', JSON.stringify(window.recipesData));
-                window.renderRecipesList();
-                window.renderManageList();
-            } else {
-                await deleteDoc(doc(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'recipes', id));
-            }
-        }
     </script>
 
+    <!-- ================= APP LOGIK & UI FUNKTIONEN ================= -->
     <script>
-        window.currentView = 'rezepte';
+        // Globale Variablen für den App-Zustand
+        window.recipesData = [];
+        window.nutritionData = [];
+        window.trainingData = [];
+        window.currentView = '';
+        window.activeCreatorTab = 'recipe';
         window.currentRecipe = null;
         window.currentPortions = 1;
+        window.currentContentMode = 'rezepte';
+        
+        let ingId = 0; // Zähler für neue Zutaten-Reihen
 
+        // --- 1. Hilfsfunktionen ---
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.textContent = msg;
@@ -241,29 +366,34 @@
             setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
         }
 
-        function navigate(view) {
+        // --- 2. Navigation ---
+        window.navigate = function(view) {
             window.currentView = view;
+            
+            // Alle Views ausblenden und gewünschte anzeigen
             document.querySelectorAll('.view').forEach(e => e.classList.add('hidden'));
             document.getElementById('view-' + view).classList.remove('hidden');
             
-            // Buttons aktualisieren
+            // Navigations-Buttons stylen
             document.querySelectorAll('.nav-btn').forEach(b => {
                 b.classList.remove('text-brand-600', 'bg-brand-50');
-                b.classList.add('text-gray-600');
+                if(b.id !== 'nav-creator') b.classList.add('text-gray-600');
             });
             const activeBtn = document.getElementById('nav-' + view);
-            if(activeBtn) {
-                activeBtn.classList.remove('text-gray-600');
-                activeBtn.classList.add('text-brand-600', 'bg-brand-50');
-            }
+            if(activeBtn) activeBtn.classList.add('text-brand-600', 'bg-brand-50');
+
+            // Passenden Render-Prozess anstoßen
+            if(view === 'rezepte') renderRecipesList();
+            if(view === 'ernaehrung') renderNutritionList();
+            if(view === 'training') renderTrainingList();
+            if(view === 'creator') renderManageList();
         }
 
+        // --- 3. Listen Rendering ---
         window.renderRecipesList = function() {
             const grid = document.getElementById('recipes-grid');
             const search = document.getElementById('recipe-search').value.toLowerCase();
-            const data = window.recipesData || [];
-            
-            const filtered = data.filter(r => r.title.toLowerCase().includes(search));
+            const filtered = (window.recipesData || []).filter(r => (r.title || '').toLowerCase().includes(search));
             
             if(filtered.length === 0) {
                 grid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">Keine Rezepte gefunden.</div>';
@@ -271,21 +401,40 @@
             }
 
             grid.innerHTML = filtered.map(r => `
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer overflow-hidden" onclick="openRecipe('${r.id}')">
-                    <img src="${r.imageUrl || 'https://placehold.co/400x300/e2e8f0/64748b?text=Rezept'}" class="w-full h-40 object-cover" onerror="this.src='https://placehold.co/400x300/e2e8f0/64748b?text=Rezept'">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer overflow-hidden transition-all" onclick="openRecipe('${r.id}')">
+                    ${r.imageUrl ? `<img src="${r.imageUrl}" class="w-full h-40 object-cover">` : `<div class="h-40 bg-brand-50 flex items-center justify-center text-brand-300"><i class="fa-solid fa-utensils text-4xl"></i></div>`}
                     <div class="p-4"><h3 class="font-bold text-lg text-gray-800">${r.title}</h3></div>
                 </div>
             `).join('');
         }
 
-        function openRecipe(id) {
+        function renderContentList(containerId, data, icon) {
+            const grid = document.getElementById(containerId);
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">Noch keine Einträge vorhanden.</div>';
+                return;
+            }
+            
+            grid.innerHTML = data.map(item => `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer overflow-hidden" onclick="openContentDetail('${item.id}', '${containerId}')">
+                    ${item.imageUrl ? `<img src="${item.imageUrl}" class="w-full h-32 object-cover">` : `<div class="h-32 bg-gray-50 flex items-center justify-center text-gray-300"><i class="fa-solid ${icon} text-4xl"></i></div>`}
+                    <div class="p-4"><span class="font-bold text-lg">${item.title}</span></div>
+                </div>
+            `).join('');
+        }
+
+        window.renderNutritionList = () => renderContentList('nutrition-grid', window.nutritionData, 'fa-leaf');
+        window.renderTrainingList = () => renderContentList('training-grid', window.trainingData, 'fa-dumbbell');
+
+        // --- 4. Detail Ansichten (Rezepte & Content) ---
+        window.openRecipe = function(id) {
             window.currentRecipe = window.recipesData.find(r => r.id === id);
-            window.currentPortions = 1;
+            window.currentPortions = parseInt(window.currentRecipe.defaultPortions) || 1;
             navigate('recipe-detail');
             updateRecipeUI();
         }
 
-        function changePortions(delta) {
+        window.changePortions = function(delta) {
             if(window.currentPortions + delta > 0) {
                 window.currentPortions += delta;
                 updateRecipeUI();
@@ -296,71 +445,240 @@
             const r = window.currentRecipe;
             if(!r) return;
             
+            // Header-Daten befüllen
             document.getElementById('detail-recipe-title').textContent = r.title;
+            document.getElementById('detail-portions').textContent = window.currentPortions;
+            document.getElementById('detail-instructions').textContent = r.instructions || 'Keine Anleitung hinterlegt.';
+            
             const img = document.getElementById('detail-recipe-image');
             img.src = r.imageUrl || '';
             img.classList.toggle('hidden', !r.imageUrl);
             
-            document.getElementById('detail-portions').textContent = window.currentPortions;
-            document.getElementById('detail-instructions').textContent = r.instructions || 'Keine Anleitung.';
+            // Zutaten und Nährwerte berechnen
+            const mult = window.currentPortions / (parseInt(r.defaultPortions) || 1);
+            let tKcal = 0, tProt = 0, tCarb = 0, tFat = 0;
             
-            const mult = window.currentPortions;
-            document.getElementById('detail-kcal').textContent = ((r.kcal || 0) * mult);
-            document.getElementById('detail-protein').textContent = ((r.prot || 0) * mult);
-            document.getElementById('detail-carbs').textContent = ((r.carb || 0) * mult);
-            document.getElementById('detail-fat').textContent = ((r.fat || 0) * mult);
+            const ul = document.getElementById('detail-ingredients');
+            ul.innerHTML = (r.ingredients || []).map(ing => {
+                const amount = (ing.amount * mult).toFixed(1).replace(/\.0$/, '');
+                
+                tKcal += (ing.kcal || 0) * mult;
+                tProt += (ing.protein || 0) * mult;
+                tCarb += (ing.carbs || 0) * mult;
+                tFat += (ing.fat || 0) * mult;
+                
+                return `
+                    <li class="flex justify-between py-1 border-b border-gray-50">
+                        <span class="font-medium">${ing.name}</span>
+                        <span class="text-gray-500">${amount} ${ing.unit}</span>
+                    </li>
+                `;
+            }).join('');
+
+            // UI für Nährwerte aktualisieren
+            document.getElementById('detail-kcal').textContent = tKcal.toFixed(0);
+            document.getElementById('detail-protein').textContent = tProt.toFixed(1);
+            document.getElementById('detail-carbs').textContent = tCarb.toFixed(1);
+            document.getElementById('detail-fat').textContent = tFat.toFixed(1);
         }
 
-        // Creator Funktionen
-        function loginCreator() {
+        window.openContentDetail = function(id, source) {
+            window.currentContentMode = source.includes('nutrition') ? 'ernaehrung' : 'training';
+            const dataArr = window.currentContentMode === 'ernaehrung' ? window.nutritionData : window.trainingData;
+            const item = dataArr.find(i => i.id === id);
+            
+            if(!item) return;
+            navigate('content-detail');
+            
+            document.getElementById('detail-content-title').textContent = item.title;
+            document.getElementById('detail-content-body').innerHTML = item.content;
+            
+            const img = document.getElementById('detail-content-image');
+            img.src = item.imageUrl || '';
+            img.classList.toggle('hidden', !item.imageUrl);
+        }
+
+        // --- 5. Creator Bereich & Formulare ---
+        window.loginCreator = function() {
             if(document.getElementById('creator-password').value === '31124775') {
                 document.getElementById('creator-login').classList.add('hidden');
                 document.getElementById('creator-dashboard').classList.remove('hidden');
-                window.renderManageList();
+                
+                if(document.getElementById('ingredients-container').children.length === 0) {
+                    addIngredientRow();
+                }
+                renderManageList();
             } else {
                 showToast("Falsches Passwort!");
             }
         }
 
-        async function saveRecipe() {
-            const title = document.getElementById('new-recipe-title').value;
-            if(!title) return showToast("Bitte einen Titel eingeben!");
-
-            const data = {
-                title: title,
-                imageUrl: document.getElementById('new-recipe-image').value,
-                instructions: document.getElementById('new-recipe-instructions').value,
-                kcal: Number(document.getElementById('new-kcal').value) || 0,
-                prot: Number(document.getElementById('new-prot').value) || 0,
-                carb: Number(document.getElementById('new-carb').value) || 0,
-                fat: Number(document.getElementById('new-fat').value) || 0
-            };
-
-            await window.saveDataAdapter(data);
-            showToast("Rezept gespeichert!");
+        window.switchCreatorTab = function(tab) {
+            window.activeCreatorTab = tab;
             
-            // Felder leeren
-            document.getElementById('new-recipe-title').value = '';
-            document.getElementById('new-recipe-image').value = '';
-            document.getElementById('new-recipe-instructions').value = '';
-            document.getElementById('new-kcal').value = '';
-            document.getElementById('new-prot').value = '';
-            document.getElementById('new-carb').value = '';
-            document.getElementById('new-fat').value = '';
+            // Tab-Styling zurücksetzen
+            document.querySelectorAll('.creator-tab').forEach(t => {
+                t.classList.remove('active-tab', 'border-brand-500', 'text-brand-600');
+                t.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // Aktiven Tab hervorheben
+            document.getElementById(`tab-${tab}`).classList.add('active-tab', 'border-brand-500', 'text-brand-600');
+            
+            // Panels wechseln
+            document.querySelectorAll('.creator-panel').forEach(p => p.classList.add('hidden'));
+            if(tab === 'recipe') {
+                document.getElementById('creator-recipe').classList.remove('hidden');
+            } else {
+                document.getElementById('creator-content').classList.remove('hidden');
+            }
+            
+            renderManageList();
+        }
+
+        window.addIngredientRow = function() {
+            ingId++;
+            const div = document.createElement('div');
+            div.id = `ing-${ingId}`;
+            div.className = "flex flex-wrap gap-2 items-center bg-white p-2 rounded border border-gray-200 shadow-sm";
+            div.innerHTML = `
+                <input type="text" placeholder="Name (z.B. Apfel)" class="flex-1 min-w-[120px] px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="number" placeholder="Menge" class="w-20 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="text" placeholder="Einheit" value="g" class="w-16 px-2 py-1 border rounded text-sm">
+                <input type="number" placeholder="Kcal" class="w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="number" placeholder="Prot" class="w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="number" placeholder="Carb" class="w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="number" placeholder="Fett" class="w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <button onclick="this.parentElement.remove(); calcTotals();" class="text-red-500 hover:text-red-700 px-2">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            `;
+            document.getElementById('ingredients-container').appendChild(div);
+        }
+
+        window.calcTotals = function() {
+            let k=0, p=0, c=0, f=0;
+            const container = document.getElementById('ingredients-container');
+            
+            for(let row of container.children) {
+                const inputs = row.getElementsByTagName('input');
+                k += parseFloat(inputs[3].value || 0);
+                p += parseFloat(inputs[4].value || 0);
+                c += parseFloat(inputs[5].value || 0);
+                f += parseFloat(inputs[6].value || 0);
+            }
+            
+            document.getElementById('preview-kcal').textContent = k.toFixed(0);
+            document.getElementById('preview-protein').textContent = p.toFixed(1);
+            document.getElementById('preview-carbs').textContent = c.toFixed(1);
+            document.getElementById('preview-fat').textContent = f.toFixed(1);
+        }
+
+        window.saveRecipe = async function() {
+            const title = document.getElementById('new-recipe-title').value.trim();
+            if(!title) return showToast("Bitte Titel eingeben!");
+
+            const ingredients = [];
+            for(let row of document.getElementById('ingredients-container').children) {
+                const ins = row.getElementsByTagName('input');
+                if(ins[0].value) {
+                    ingredients.push({
+                        name: ins[0].value, 
+                        amount: parseFloat(ins[1].value||0), 
+                        unit: ins[2].value,
+                        kcal: parseFloat(ins[3].value||0), 
+                        protein: parseFloat(ins[4].value||0),
+                        carbs: parseFloat(ins[5].value||0), 
+                        fat: parseFloat(ins[6].value||0)
+                    });
+                }
+            }
+
+            try {
+                await window.cloudAddDoc('recipes', {
+                    title: title,
+                    imageUrl: document.getElementById('new-recipe-image').value,
+                    defaultPortions: document.getElementById('new-recipe-portions').value || 1,
+                    instructions: document.getElementById('new-recipe-instructions').value,
+                    ingredients: ingredients
+                });
+                
+                showToast("Rezept gespeichert!");
+                
+                // Formular leeren & Reset
+                document.getElementById('new-recipe-title').value = '';
+                document.getElementById('new-recipe-image').value = '';
+                document.getElementById('new-recipe-portions').value = '1';
+                document.getElementById('new-recipe-instructions').value = '';
+                document.getElementById('ingredients-container').innerHTML = '';
+                
+                addIngredientRow();
+                calcTotals();
+            } catch (e) {
+                showToast("Fehler beim Speichern!");
+                console.error(e);
+            }
+        }
+
+        window.saveContent = async function() {
+            const title = document.getElementById('new-content-title').value.trim();
+            if(!title) return showToast("Bitte Titel eingeben!");
+            
+            const collectionName = activeCreatorTab === 'nutrition' ? 'nutrition' : 'training';
+            
+            try {
+                await window.cloudAddDoc(collectionName, {
+                    title: title,
+                    imageUrl: document.getElementById('new-content-image').value,
+                    content: document.getElementById('new-content-body').innerHTML
+                });
+                
+                showToast("Beitrag gespeichert!");
+                
+                // Formular leeren
+                document.getElementById('new-content-title').value = '';
+                document.getElementById('new-content-image').value = '';
+                document.getElementById('new-content-body').innerHTML = '';
+            } catch(e) {
+                showToast("Fehler beim Speichern!");
+                console.error(e);
+            }
         }
 
         window.renderManageList = function() {
             const list = document.getElementById('creator-manage-list');
-            if(!window.recipesData || window.recipesData.length === 0) {
-                list.innerHTML = '<p class="text-sm text-gray-500">Keine Einträge vorhanden.</p>';
+            let data = [];
+            let coll = '';
+            
+            if(activeCreatorTab === 'recipe') { data = window.recipesData; coll = 'recipes'; }
+            if(activeCreatorTab === 'nutrition') { data = window.nutritionData; coll = 'nutrition'; }
+            if(activeCreatorTab === 'training') { data = window.trainingData; coll = 'training'; }
+
+            if(data.length === 0) {
+                list.innerHTML = '<p class="text-sm text-gray-500">Keine Einträge.</p>';
                 return;
             }
-            list.innerHTML = window.recipesData.map(r => `
+            
+            list.innerHTML = data.map(item => `
                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
-                    <span class="font-medium">${r.title}</span>
-                    <button onclick="window.deleteDataAdapter('${r.id}')" class="text-red-500 hover:text-red-700 px-3 py-1"><i class="fa-solid fa-trash"></i></button>
+                    <span class="font-medium truncate">${item.title}</span>
+                    <button onclick="deleteItem('${coll}', '${item.id}')" class="text-red-500 px-3 py-1 hover:bg-red-50 rounded transition-colors">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
                 </div>
             `).join('');
+        }
+
+        window.deleteItem = async function(collectionName, id) {
+            if(confirm("Wirklich löschen? Das kann nicht rückgängig gemacht werden.")) {
+                try {
+                    await window.cloudDeleteDoc(collectionName, id);
+                    showToast("Eintrag gelöscht!");
+                } catch(e) { 
+                    showToast("Fehler beim Löschen.");
+                    console.error(e);
+                }
+            }
         }
     </script>
 </body>
