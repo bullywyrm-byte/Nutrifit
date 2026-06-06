@@ -32,9 +32,9 @@
         .editor-content { min-height: 150px; }
         .editor-content:empty:before { content: attr(placeholder); color: #9ca3af; }
         .ingredient-autocomplete { position: relative; }
-        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; bg-white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 0.5rem 0.5rem; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
+        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; bg-white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 0.5rem 0.5rem; max-height: 200px; overflow-y: auto; display: none; }
         .autocomplete-list.active { display: block; }
-        .autocomplete-item { padding: 0.5rem 0.75rem; cursor: pointer; hover: background-color: #f3f4f6; }
+        .autocomplete-item { padding: 0.5rem 0.75rem; cursor: pointer; }
         .autocomplete-item:hover { background-color: #f3f4f6; }
     </style>
 </head>
@@ -197,11 +197,12 @@
                     </button>
                 </div>
                 
-                <!-- Tab Navigation (Rezept, Ernährung, Training) -->
+                <!-- Tab Navigation (Rezept, Ernährung, Training, Zutaten) -->
                 <div class="flex border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar">
-                    <button onclick="switchCreatorTab('recipe')" id="tab-recipe" class="creator-tab active-tab px-4 py-2 border-b-2 border-brand-500 text-brand-600 font-medium whitespace-nowrap"><i class="fa-solid fa-utensils mr-1"></i> Rezept</button>
-                    <button onclick="switchCreatorTab('nutrition')" id="tab-nutrition" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-leaf mr-1"></i> Ernährung</button>
+                    <button onclick="switchCreatorTab('recipe')" id="tab-recipe" class="creator-tab active-tab px-4 py-2 border-b-2 border-brand-500 text-brand-600 font-medium whitespace-nowrap"><i class="fa-solid fa-utensils mr-1"></i> Rezepte</button>
+                    <button onclick="switchCreatorTab('nutrition')" id="tab-nutrition" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-apple-whole mr-1"></i> Ernährung</button>
                     <button onclick="switchCreatorTab('training')" id="tab-training" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-dumbbell mr-1"></i> Training</button>
+                    <button onclick="switchCreatorTab('ingredients')" id="tab-ingredients" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-basket-shopping mr-1"></i> Zutaten DB</button>
                 </div>
 
                 <!-- Modul: Neues Rezept -->
@@ -256,9 +257,28 @@
                     
                     <button onclick="saveContent()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition-colors">Beitrag speichern</button>
                 </div>
+
+                <!-- Modul: Zutaten-Datenbank Manager -->
+                <div id="creator-ingredients" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 creator-panel hidden">
+                    <h2 class="text-lg font-bold mb-4">Zutaten-Datenbank verwalten</h2>
+                    <p class="text-sm text-gray-600 mb-4">Füge neue Zutaten zur Datenbank hinzu, damit sie beim Rezepte erstellen automatisch verfügbar sind.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <input type="text" id="ing-name" placeholder="Zutat Name (z.B. Hühnerbrust)" class="w-full px-4 py-2 border rounded-lg">
+                        <input type="text" id="ing-unit" placeholder="Einheit (g, ml, Stück)" value="g" class="w-full px-4 py-2 border rounded-lg">
+                        <input type="number" id="ing-kcal" placeholder="kcal pro Einheit" class="w-full px-4 py-2 border rounded-lg" step="0.1">
+                        <input type="number" id="ing-protein" placeholder="Protein (g)" class="w-full px-4 py-2 border rounded-lg" step="0.1">
+                        <input type="number" id="ing-carbs" placeholder="Carbs (g)" class="w-full px-4 py-2 border rounded-lg" step="0.1">
+                        <input type="number" id="ing-fat" placeholder="Fett (g)" class="w-full px-4 py-2 border rounded-lg" step="0.1">
+                    </div>
+                    <button onclick="saveCustomIngredient()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition-colors mb-6">Zutat hinzufügen</button>
+
+                    <h3 class="text-md font-bold mb-3">Benutzerdefinierte Zutaten</h3>
+                    <div id="custom-ingredients-list" class="space-y-2"></div>
+                </div>
                 
                 <!-- Modul: Verwaltung (Bearbeiten & Löschen) -->
-                <div class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div id="creator-manage" class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h2 class="text-lg font-bold mb-4">Einträge verwalten</h2>
                     <div id="creator-manage-list" class="space-y-2"></div>
                 </div>
@@ -340,6 +360,12 @@
                 if (window.currentView === 'training') renderTrainingList();
                 if (window.currentView === 'creator') renderManageList();
             }, (err) => console.error("Firestore Lese-Fehler (Training):", err));
+
+            // Zutaten-Datenbank abonnieren (Benutzerdefiniert)
+            onSnapshot(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', 'ingredients'), (snap) => {
+                window.customIngredientsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                if (window.currentView === 'creator' && window.activeCreatorTab === 'ingredients') renderCustomIngredientsList();
+            }, (err) => console.error("Firestore Lese-Fehler (Zutaten):", err));
         }
 
         // Cloud-Speicher Funktionen global verfügbar machen
@@ -360,7 +386,7 @@
 
     <!-- ================= APP LOGIK & UI FUNKTIONEN ================= -->
     <script>
-        // ===== Nährstoff-Datenbank (Häufige Zutaten) =====
+        // ===== Nährstoff-Datenbank (Häufige Zutaten - LOKAL) =====
         const NUTRIENT_DATABASE = {
             'apfel': { kcal: 52, protein: 0.3, carbs: 13.8, fat: 0.2, unit: 'g' },
             'banane': { kcal: 89, protein: 1.1, carbs: 23, fat: 0.3, unit: 'g' },
@@ -394,6 +420,7 @@
         window.recipesData = [];
         window.nutritionData = [];
         window.trainingData = [];
+        window.customIngredientsData = [];
         window.currentView = '';
         window.activeCreatorTab = 'recipe';
         window.currentRecipe = null;
@@ -413,7 +440,25 @@
 
         function getNutrientData(ingredientName) {
             const normalized = ingredientName.toLowerCase().trim();
-            return NUTRIENT_DATABASE[normalized] || null;
+            
+            // 1. Zuerst in lokaler Datenbank suchen
+            if (NUTRIENT_DATABASE[normalized]) {
+                return NUTRIENT_DATABASE[normalized];
+            }
+            
+            // 2. Dann in benutzerdefinierten Zutaten suchen
+            const customIng = window.customIngredientsData?.find(ing => ing.name.toLowerCase() === normalized);
+            if (customIng) {
+                return {
+                    kcal: customIng.kcal,
+                    protein: customIng.protein,
+                    carbs: customIng.carbs,
+                    fat: customIng.fat,
+                    unit: customIng.unit
+                };
+            }
+            
+            return null;
         }
 
         function formatNutrient(value) {
@@ -453,7 +498,7 @@
 
             grid.innerHTML = filtered.map(r => `
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer overflow-hidden transition-all" onclick="openRecipe('${r.id}')">
-                    ${r.imageUrl ? `<img src="${r.imageUrl}" class="w-full h-40 object-cover">` : `<div class="h-40 bg-brand-50 flex items-center justify-center text-brand-300"><i class="fa-solid fa-utensils"></i></div>`}
+                    ${r.imageUrl ? `<img src="${r.imageUrl}" class="w-full h-40 object-cover">` : `<div class="h-40 bg-brand-50 flex items-center justify-center text-brand-300"><i class="fa-solid fa-utensils text-3xl"></i></div>`}
                     <div class="p-4"><h3 class="font-bold text-lg text-gray-800">${r.title}</h3></div>
                 </div>
             `).join('');
@@ -468,7 +513,7 @@
             
             grid.innerHTML = data.map(item => `
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer overflow-hidden" onclick="openContentDetail('${item.id}', '${containerId}')">
-                    ${item.imageUrl ? `<img src="${item.imageUrl}" class="w-full h-32 object-cover">` : `<div class="h-32 bg-gray-50 flex items-center justify-center text-gray-300"><i class="fa-solid ${icon}"></i></div>`}
+                    ${item.imageUrl ? `<img src="${item.imageUrl}" class="w-full h-32 object-cover">` : `<div class="h-32 bg-gray-50 flex items-center justify-center text-gray-300"><i class="fa-solid ${icon} text-2xl"></i></div>`}
                     <div class="p-4"><span class="font-bold text-lg">${item.title}</span></div>
                 </div>
             `).join('');
@@ -574,6 +619,9 @@
             document.querySelectorAll('.creator-panel').forEach(p => p.classList.add('hidden'));
             if(tab === 'recipe') {
                 document.getElementById('creator-recipe').classList.remove('hidden');
+            } else if(tab === 'ingredients') {
+                document.getElementById('creator-ingredients').classList.remove('hidden');
+                renderCustomIngredientsList();
             } else {
                 document.getElementById('creator-content').classList.remove('hidden');
             }
@@ -588,7 +636,7 @@
             div.className = "flex flex-wrap gap-2 items-center bg-white p-2 rounded border border-gray-200 shadow-sm";
             div.innerHTML = `
                 <div class="ingredient-autocomplete flex-1 min-w-[120px] relative">
-                    <input type="text" placeholder="Name (z.B. Apfel)" class="ingredient-input w-full px-2 py-1 border rounded text-sm" data-ing-id="${ingId}" oninput="showIngredientSuggestions(this)" onblur="hideIngredientSuggestions(this)">
+                    <input type="text" placeholder="Name (z.B. Apfel)" class="ingredient-input w-full px-2 py-1 border rounded text-sm" data-ing-id="${ingId}" oninput="showIngredientSuggestions(this)">
                     <div class="autocomplete-list" data-ing-list="${ingId}"></div>
                 </div>
                 <input type="number" placeholder="Menge" class="ingredient-amount w-20 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
@@ -609,13 +657,20 @@
             if(value.length < 1) return;
             
             const ingId = input.getAttribute('data-ing-id');
-            const suggestions = Object.keys(NUTRIENT_DATABASE).filter(ing => 
+            
+            // Suche in beiden Datenbanken
+            const localSuggestions = Object.keys(NUTRIENT_DATABASE).filter(ing => 
                 ing.includes(value)
-            ).slice(0, 5);
+            );
+            const customSuggestions = (window.customIngredientsData || [])
+                .filter(ing => ing.name.toLowerCase().includes(value))
+                .map(ing => ing.name.toLowerCase());
+            
+            const allSuggestions = [...new Set([...localSuggestions, ...customSuggestions])].slice(0, 8);
             
             const list = document.querySelector(`.autocomplete-list[data-ing-list="${ingId}"]`);
-            if(suggestions.length > 0) {
-                list.innerHTML = suggestions.map(sug => `
+            if(allSuggestions.length > 0) {
+                list.innerHTML = allSuggestions.map(sug => `
                     <div class="autocomplete-item" onclick="selectIngredient('${sug}', ${ingId})">${sug}</div>
                 `).join('');
                 list.classList.add('active');
@@ -667,6 +722,56 @@
             document.getElementById('preview-protein').textContent = p.toFixed(1);
             document.getElementById('preview-carbs').textContent = c.toFixed(1);
             document.getElementById('preview-fat').textContent = f.toFixed(1);
+        }
+
+        // Benutzerdefinierte Zutat speichern
+        window.saveCustomIngredient = async function() {
+            const name = document.getElementById('ing-name').value.trim();
+            if(!name) return showToast("Bitte Zutat Name eingeben!");
+
+            try {
+                await window.cloudAddDoc('ingredients', {
+                    name: name,
+                    unit: document.getElementById('ing-unit').value || 'g',
+                    kcal: parseFloat(document.getElementById('ing-kcal').value || 0),
+                    protein: parseFloat(document.getElementById('ing-protein').value || 0),
+                    carbs: parseFloat(document.getElementById('ing-carbs').value || 0),
+                    fat: parseFloat(document.getElementById('ing-fat').value || 0)
+                });
+                
+                showToast(`Zutat "${name}" hinzugefügt!`);
+                document.getElementById('ing-name').value = '';
+                document.getElementById('ing-unit').value = 'g';
+                document.getElementById('ing-kcal').value = '';
+                document.getElementById('ing-protein').value = '';
+                document.getElementById('ing-carbs').value = '';
+                document.getElementById('ing-fat').value = '';
+            } catch (e) {
+                showToast("Fehler beim Speichern!");
+                console.error(e);
+            }
+        }
+
+        window.renderCustomIngredientsList = function() {
+            const list = document.getElementById('custom-ingredients-list');
+            const data = window.customIngredientsData || [];
+            
+            if(data.length === 0) {
+                list.innerHTML = '<p class="text-sm text-gray-500">Noch keine benutzerdefinierten Zutaten.</p>';
+                return;
+            }
+            
+            list.innerHTML = data.map(ing => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                    <div class="flex-1">
+                        <span class="font-medium">${ing.name}</span>
+                        <span class="text-xs text-gray-500 ml-2">${ing.kcal} kcal | ${ing.protein}g Prot | ${ing.carbs}g Carb | ${ing.fat}g Fett (pro ${ing.unit})</span>
+                    </div>
+                    <button onclick="deleteItem('ingredients', '${ing.id}')" class="text-red-500 px-3 py-1 hover:bg-red-50 rounded transition-colors">
+                        <i class="fa-solid fa-trash"></i> Löschen
+                    </button>
+                </div>
+            `).join('');
         }
 
         // Edit Rezept laden
