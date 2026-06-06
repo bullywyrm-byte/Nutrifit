@@ -72,7 +72,7 @@
         <p id="loading-text" class="text-gray-500 font-medium">Verbinde mit Firebase Cloud...</p>
     </div>
     
-    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 font-medium">
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-50">
         Message
     </div>
 
@@ -194,13 +194,19 @@
                 
                 <!-- Tab Navigation (Rezept, Ernährung, Training) -->
                 <div class="flex border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar">
-                    <button onclick="switchCreatorTab('recipe')" id="tab-recipe" class="creator-tab active-tab px-4 py-2 border-b-2 border-brand-500 text-brand-600 font-medium whitespace-nowrap"><i class="fa-solid fa-utensils mr-2"></i>Neues Rezept</button>
-                    <button onclick="switchCreatorTab('nutrition')" id="tab-nutrition" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-apple-whole mr-2"></i>Neue Ernährung</button>
-                    <button onclick="switchCreatorTab('training')" id="tab-training" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-dumbbell mr-2"></i>Neues Training</button>
+                    <button onclick="switchCreatorTab('recipe')" id="tab-recipe" class="creator-tab active-tab px-4 py-2 border-b-2 border-brand-500 text-brand-600 font-medium whitespace-nowrap"><i class="fa-solid fa-utensils mr-1"></i> Rezept</button>
+                    <button onclick="switchCreatorTab('nutrition')" id="tab-nutrition" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-leaf mr-1"></i> Ernährung</button>
+                    <button onclick="switchCreatorTab('training')" id="tab-training" class="creator-tab px-4 py-2 border-b-2 border-transparent text-gray-500 font-medium whitespace-nowrap"><i class="fa-solid fa-dumbbell mr-1"></i> Training</button>
                 </div>
 
                 <!-- Modul: Neues Rezept -->
                 <div id="creator-recipe" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 creator-panel">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold"><span id="recipe-form-title">Neues Rezept</span></h2>
+                        <button id="cancel-edit-btn" onclick="cancelEditRecipe()" class="text-gray-500 hover:text-gray-700 hidden">
+                            <i class="fa-solid fa-times"></i> Bearbeitung abbrechen
+                        </button>
+                    </div>
                     <input type="text" id="new-recipe-title" placeholder="Rezept Name (z.B. Protein Pancakes)" class="w-full px-4 py-2 border rounded-lg mb-4 font-bold text-lg">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <input type="url" id="new-recipe-image" placeholder="Bild URL (optional)" class="w-full px-4 py-2 border rounded-lg">
@@ -228,7 +234,7 @@
                         </div>
                     </div>
 
-                    <button onclick="saveRecipe()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition-colors">Rezept speichern</button>
+                    <button id="save-recipe-btn" onclick="saveRecipe()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition-colors">Rezept speichern</button>
                 </div>
 
                 <!-- Modul: Content Editor (Ernährung / Training) -->
@@ -241,12 +247,12 @@
                         <button onclick="document.execCommand('italic')" class="w-8 h-8 rounded hover:bg-gray-200"><i class="fa-solid fa-italic"></i></button>
                         <button onclick="document.execCommand('insertUnorderedList')" class="w-8 h-8 rounded hover:bg-gray-200"><i class="fa-solid fa-list-ul"></i></button>
                     </div>
-                    <div id="new-content-body" contenteditable="true" class="editor-content w-full p-4 border border-t-0 rounded-b-lg mb-6 bg-white focus:outline-none" placeholder="Schreibe deinen Text hier..."></div>
+                    <div id="new-content-body" contenteditable="true" class="editor-content w-full p-4 border border-t-0 rounded-b-lg mb-6 bg-white focus:outline-none" placeholder="Schreibe deinen Text..."></div>
                     
                     <button onclick="saveContent()" class="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition-colors">Beitrag speichern</button>
                 </div>
                 
-                <!-- Modul: Verwaltung (Löschen) -->
+                <!-- Modul: Verwaltung (Bearbeiten & Löschen) -->
                 <div class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h2 class="text-lg font-bold mb-4">Einträge verwalten</h2>
                     <div id="creator-manage-list" class="space-y-2"></div>
@@ -259,7 +265,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDr4b7ZZcq76oIST9uvjVYLHwELja5V5bA",
@@ -336,6 +342,9 @@
             data.createdAt = serverTimestamp();
             await addDoc(collection(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', collectionName), data);
         }
+        window.cloudUpdateDoc = async function(collectionName, id, data) {
+            await updateDoc(doc(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', collectionName, id), data);
+        }
         window.cloudDeleteDoc = async function(collectionName, id) {
             await deleteDoc(doc(window.db, 'artifacts', 'daniels-nutrifit', 'public', 'data', collectionName, id));
         }
@@ -355,6 +364,7 @@
         window.currentRecipe = null;
         window.currentPortions = 1;
         window.currentContentMode = 'rezepte';
+        window.editingRecipeId = null; // Für Bearbeitungsmodus
         
         let ingId = 0; // Zähler für neue Zutaten-Reihen
 
@@ -402,7 +412,7 @@
 
             grid.innerHTML = filtered.map(r => `
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer overflow-hidden transition-all" onclick="openRecipe('${r.id}')">
-                    ${r.imageUrl ? `<img src="${r.imageUrl}" class="w-full h-40 object-cover">` : `<div class="h-40 bg-brand-50 flex items-center justify-center text-brand-300"><i class="fa-solid fa-utensils text-4xl"></i></div>`}
+                    ${r.imageUrl ? `<img src="${r.imageUrl}" class="w-full h-40 object-cover">` : `<div class="h-40 bg-brand-50 flex items-center justify-center text-brand-300"><i class="fa-solid fa-utensils"></i></div>`}
                     <div class="p-4"><h3 class="font-bold text-lg text-gray-800">${r.title}</h3></div>
                 </div>
             `).join('');
@@ -417,7 +427,7 @@
             
             grid.innerHTML = data.map(item => `
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md cursor-pointer overflow-hidden" onclick="openContentDetail('${item.id}', '${containerId}')">
-                    ${item.imageUrl ? `<img src="${item.imageUrl}" class="w-full h-32 object-cover">` : `<div class="h-32 bg-gray-50 flex items-center justify-center text-gray-300"><i class="fa-solid ${icon} text-4xl"></i></div>`}
+                    ${item.imageUrl ? `<img src="${item.imageUrl}" class="w-full h-32 object-cover">` : `<div class="h-32 bg-gray-50 flex items-center justify-center text-gray-300"><i class="fa-solid ${icon}"></i></div>`}
                     <div class="p-4"><span class="font-bold text-lg">${item.title}</span></div>
                 </div>
             `).join('');
@@ -574,6 +584,74 @@
             document.getElementById('preview-fat').textContent = f.toFixed(1);
         }
 
+        // Edit Rezept laden
+        window.editRecipe = async function(id) {
+            const recipe = window.recipesData.find(r => r.id === id);
+            if(!recipe) return;
+
+            window.editingRecipeId = id;
+            window.activeCreatorTab = 'recipe';
+            switchCreatorTab('recipe');
+
+            // Formular mit Daten befüllen
+            document.getElementById('new-recipe-title').value = recipe.title;
+            document.getElementById('new-recipe-image').value = recipe.imageUrl || '';
+            document.getElementById('new-recipe-portions').value = recipe.defaultPortions || 1;
+            document.getElementById('new-recipe-instructions').value = recipe.instructions || '';
+
+            // Zutaten laden
+            document.getElementById('ingredients-container').innerHTML = '';
+            ingId = 0;
+            
+            if(recipe.ingredients && recipe.ingredients.length > 0) {
+                recipe.ingredients.forEach(ing => {
+                    ingId++;
+                    const div = document.createElement('div');
+                    div.id = `ing-${ingId}`;
+                    div.className = "flex flex-wrap gap-2 items-center bg-white p-2 rounded border border-gray-200 shadow-sm";
+                    div.innerHTML = `
+                        <input type="text" placeholder="Name" class="flex-1 min-w-[120px] px-2 py-1 border rounded text-sm" value="${ing.name}" oninput="calcTotals()">
+                        <input type="number" placeholder="Menge" class="w-20 px-2 py-1 border rounded text-sm" value="${ing.amount}" oninput="calcTotals()">
+                        <input type="text" placeholder="Einheit" value="${ing.unit}" class="w-16 px-2 py-1 border rounded text-sm">
+                        <input type="number" placeholder="Kcal" class="w-16 px-2 py-1 border rounded text-sm" value="${ing.kcal || 0}" oninput="calcTotals()">
+                        <input type="number" placeholder="Prot" class="w-16 px-2 py-1 border rounded text-sm" value="${ing.protein || 0}" oninput="calcTotals()">
+                        <input type="number" placeholder="Carb" class="w-16 px-2 py-1 border rounded text-sm" value="${ing.carbs || 0}" oninput="calcTotals()">
+                        <input type="number" placeholder="Fett" class="w-16 px-2 py-1 border rounded text-sm" value="${ing.fat || 0}" oninput="calcTotals()">
+                        <button onclick="this.parentElement.remove(); calcTotals();" class="text-red-500 hover:text-red-700 px-2">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    `;
+                    document.getElementById('ingredients-container').appendChild(div);
+                });
+            } else {
+                addIngredientRow();
+            }
+
+            // UI aktualisieren
+            document.getElementById('recipe-form-title').textContent = 'Rezept bearbeiten: ' + recipe.title;
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+            document.getElementById('save-recipe-btn').textContent = 'Änderungen speichern';
+
+            calcTotals();
+            navigate('creator');
+        }
+
+        window.cancelEditRecipe = function() {
+            window.editingRecipeId = null;
+            document.getElementById('recipe-form-title').textContent = 'Neues Rezept';
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
+            document.getElementById('save-recipe-btn').textContent = 'Rezept speichern';
+            
+            // Formular leeren
+            document.getElementById('new-recipe-title').value = '';
+            document.getElementById('new-recipe-image').value = '';
+            document.getElementById('new-recipe-portions').value = '1';
+            document.getElementById('new-recipe-instructions').value = '';
+            document.getElementById('ingredients-container').innerHTML = '';
+            addIngredientRow();
+            calcTotals();
+        }
+
         window.saveRecipe = async function() {
             const title = document.getElementById('new-recipe-title').value.trim();
             if(!title) return showToast("Bitte Titel eingeben!");
@@ -595,25 +673,27 @@
             }
 
             try {
-                await window.cloudAddDoc('recipes', {
+                const recipeData = {
                     title: title,
                     imageUrl: document.getElementById('new-recipe-image').value,
                     defaultPortions: document.getElementById('new-recipe-portions').value || 1,
                     instructions: document.getElementById('new-recipe-instructions').value,
                     ingredients: ingredients
-                });
-                
-                showToast("Rezept gespeichert!");
+                };
+
+                if(window.editingRecipeId) {
+                    // Update existierendes Rezept
+                    await window.cloudUpdateDoc('recipes', window.editingRecipeId, recipeData);
+                    showToast("Rezept aktualisiert!");
+                    window.editingRecipeId = null;
+                } else {
+                    // Neues Rezept speichern
+                    await window.cloudAddDoc('recipes', recipeData);
+                    showToast("Rezept gespeichert!");
+                }
                 
                 // Formular leeren & Reset
-                document.getElementById('new-recipe-title').value = '';
-                document.getElementById('new-recipe-image').value = '';
-                document.getElementById('new-recipe-portions').value = '1';
-                document.getElementById('new-recipe-instructions').value = '';
-                document.getElementById('ingredients-container').innerHTML = '';
-                
-                addIngredientRow();
-                calcTotals();
+                cancelEditRecipe();
             } catch (e) {
                 showToast("Fehler beim Speichern!");
                 console.error(e);
@@ -661,9 +741,12 @@
             
             list.innerHTML = data.map(item => `
                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
-                    <span class="font-medium truncate">${item.title}</span>
+                    <span class="font-medium truncate flex-1">${item.title}</span>
+                    ${coll === 'recipes' ? `<button onclick="editRecipe('${item.id}')" class="text-blue-500 px-3 py-1 hover:bg-blue-50 rounded transition-colors mr-2">
+                        <i class="fa-solid fa-edit"></i> Bearbeiten
+                    </button>` : ''}
                     <button onclick="deleteItem('${coll}', '${item.id}')" class="text-red-500 px-3 py-1 hover:bg-red-50 rounded transition-colors">
-                        <i class="fa-solid fa-trash"></i>
+                        <i class="fa-solid fa-trash"></i> Löschen
                     </button>
                 </div>
             `).join('');
