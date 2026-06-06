@@ -31,6 +31,11 @@
         .creator-tab.active-tab { border-bottom-width: 2px; border-color: #10b981; color: #059669; }
         .editor-content { min-height: 150px; }
         .editor-content:empty:before { content: attr(placeholder); color: #9ca3af; }
+        .ingredient-autocomplete { position: relative; }
+        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; bg-white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 0.5rem 0.5rem; max-height: 200px; overflow-y: auto; z-index: 10; display: none; }
+        .autocomplete-list.active { display: block; }
+        .autocomplete-item { padding: 0.5rem 0.75rem; cursor: pointer; hover: background-color: #f3f4f6; }
+        .autocomplete-item:hover { background-color: #f3f4f6; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
@@ -355,6 +360,36 @@
 
     <!-- ================= APP LOGIK & UI FUNKTIONEN ================= -->
     <script>
+        // ===== Nährstoff-Datenbank (Häufige Zutaten) =====
+        const NUTRIENT_DATABASE = {
+            'apfel': { kcal: 52, protein: 0.3, carbs: 13.8, fat: 0.2, unit: 'g' },
+            'banane': { kcal: 89, protein: 1.1, carbs: 23, fat: 0.3, unit: 'g' },
+            'ei': { kcal: 155, protein: 13, carbs: 1.1, fat: 11, unit: 'Stück' },
+            'milch': { kcal: 61, protein: 3.2, carbs: 4.8, fat: 3.3, unit: 'ml' },
+            'joghurt': { kcal: 59, protein: 3.5, carbs: 4.7, fat: 0.4, unit: 'g' },
+            'käse': { kcal: 402, protein: 25, carbs: 1.3, fat: 33, unit: 'g' },
+            'butter': { kcal: 717, protein: 0.9, carbs: 0.1, fat: 81, unit: 'g' },
+            'öl': { kcal: 884, protein: 0, carbs: 0, fat: 100, unit: 'ml' },
+            'mehl': { kcal: 364, protein: 10, carbs: 76, fat: 1, unit: 'g' },
+            'zucker': { kcal: 387, protein: 0, carbs: 100, fat: 0, unit: 'g' },
+            'salz': { kcal: 0, protein: 0, carbs: 0, fat: 0, unit: 'g' },
+            'huhn': { kcal: 165, protein: 31, carbs: 0, fat: 3.6, unit: 'g' },
+            'rind': { kcal: 250, protein: 26, carbs: 0, fat: 17, unit: 'g' },
+            'fisch': { kcal: 206, protein: 22, carbs: 0, fat: 13, unit: 'g' },
+            'tomate': { kcal: 18, protein: 0.9, carbs: 3.9, fat: 0.2, unit: 'g' },
+            'salat': { kcal: 15, protein: 1.2, carbs: 2.9, fat: 0.2, unit: 'g' },
+            'kartoffel': { kcal: 77, protein: 2, carbs: 17, fat: 0.1, unit: 'g' },
+            'reis': { kcal: 130, protein: 2.7, carbs: 28, fat: 0.3, unit: 'g' },
+            'pasta': { kcal: 131, protein: 5, carbs: 25, fat: 1.1, unit: 'g' },
+            'brot': { kcal: 265, protein: 9, carbs: 49, fat: 3.3, unit: 'g' },
+            'nuss': { kcal: 607, protein: 21, carbs: 21, fat: 54, unit: 'g' },
+            'honig': { kcal: 304, protein: 0.3, carbs: 82, fat: 0, unit: 'g' },
+            'protein pulver': { kcal: 387, protein: 80, carbs: 4, fat: 5, unit: 'g' },
+            'haferflocken': { kcal: 389, protein: 17, carbs: 66, fat: 7, unit: 'g' },
+            'brokkoli': { kcal: 34, protein: 2.8, carbs: 7, fat: 0.4, unit: 'g' },
+            'spinat': { kcal: 23, protein: 2.7, carbs: 3.6, fat: 0.4, unit: 'g' }
+        };
+
         // Globale Variablen für den App-Zustand
         window.recipesData = [];
         window.nutritionData = [];
@@ -364,9 +399,9 @@
         window.currentRecipe = null;
         window.currentPortions = 1;
         window.currentContentMode = 'rezepte';
-        window.editingRecipeId = null; // Für Bearbeitungsmodus
+        window.editingRecipeId = null;
         
-        let ingId = 0; // Zähler für neue Zutaten-Reihen
+        let ingId = 0;
 
         // --- 1. Hilfsfunktionen ---
         function showToast(msg) {
@@ -376,15 +411,22 @@
             setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 3000);
         }
 
+        function getNutrientData(ingredientName) {
+            const normalized = ingredientName.toLowerCase().trim();
+            return NUTRIENT_DATABASE[normalized] || null;
+        }
+
+        function formatNutrient(value) {
+            return parseFloat(value).toFixed(1);
+        }
+
         // --- 2. Navigation ---
         window.navigate = function(view) {
             window.currentView = view;
             
-            // Alle Views ausblenden und gewünschte anzeigen
             document.querySelectorAll('.view').forEach(e => e.classList.add('hidden'));
             document.getElementById('view-' + view).classList.remove('hidden');
             
-            // Navigations-Buttons stylen
             document.querySelectorAll('.nav-btn').forEach(b => {
                 b.classList.remove('text-brand-600', 'bg-brand-50');
                 if(b.id !== 'nav-creator') b.classList.add('text-gray-600');
@@ -392,7 +434,6 @@
             const activeBtn = document.getElementById('nav-' + view);
             if(activeBtn) activeBtn.classList.add('text-brand-600', 'bg-brand-50');
 
-            // Passenden Render-Prozess anstoßen
             if(view === 'rezepte') renderRecipesList();
             if(view === 'ernaehrung') renderNutritionList();
             if(view === 'training') renderTrainingList();
@@ -455,7 +496,6 @@
             const r = window.currentRecipe;
             if(!r) return;
             
-            // Header-Daten befüllen
             document.getElementById('detail-recipe-title').textContent = r.title;
             document.getElementById('detail-portions').textContent = window.currentPortions;
             document.getElementById('detail-instructions').textContent = r.instructions || 'Keine Anleitung hinterlegt.';
@@ -464,7 +504,6 @@
             img.src = r.imageUrl || '';
             img.classList.toggle('hidden', !r.imageUrl);
             
-            // Zutaten und Nährwerte berechnen
             const mult = window.currentPortions / (parseInt(r.defaultPortions) || 1);
             let tKcal = 0, tProt = 0, tCarb = 0, tFat = 0;
             
@@ -485,7 +524,6 @@
                 `;
             }).join('');
 
-            // UI für Nährwerte aktualisieren
             document.getElementById('detail-kcal').textContent = tKcal.toFixed(0);
             document.getElementById('detail-protein').textContent = tProt.toFixed(1);
             document.getElementById('detail-carbs').textContent = tCarb.toFixed(1);
@@ -526,16 +564,13 @@
         window.switchCreatorTab = function(tab) {
             window.activeCreatorTab = tab;
             
-            // Tab-Styling zurücksetzen
             document.querySelectorAll('.creator-tab').forEach(t => {
                 t.classList.remove('active-tab', 'border-brand-500', 'text-brand-600');
                 t.classList.add('border-transparent', 'text-gray-500');
             });
             
-            // Aktiven Tab hervorheben
             document.getElementById(`tab-${tab}`).classList.add('active-tab', 'border-brand-500', 'text-brand-600');
             
-            // Panels wechseln
             document.querySelectorAll('.creator-panel').forEach(p => p.classList.add('hidden'));
             if(tab === 'recipe') {
                 document.getElementById('creator-recipe').classList.remove('hidden');
@@ -552,18 +587,68 @@
             div.id = `ing-${ingId}`;
             div.className = "flex flex-wrap gap-2 items-center bg-white p-2 rounded border border-gray-200 shadow-sm";
             div.innerHTML = `
-                <input type="text" placeholder="Name (z.B. Apfel)" class="flex-1 min-w-[120px] px-2 py-1 border rounded text-sm" oninput="calcTotals()">
-                <input type="number" placeholder="Menge" class="w-20 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
-                <input type="text" placeholder="Einheit" value="g" class="w-16 px-2 py-1 border rounded text-sm">
-                <input type="number" placeholder="Kcal" class="w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
-                <input type="number" placeholder="Prot" class="w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
-                <input type="number" placeholder="Carb" class="w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
-                <input type="number" placeholder="Fett" class="w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <div class="ingredient-autocomplete flex-1 min-w-[120px] relative">
+                    <input type="text" placeholder="Name (z.B. Apfel)" class="ingredient-input w-full px-2 py-1 border rounded text-sm" data-ing-id="${ingId}" oninput="showIngredientSuggestions(this)" onblur="hideIngredientSuggestions(this)">
+                    <div class="autocomplete-list" data-ing-list="${ingId}"></div>
+                </div>
+                <input type="number" placeholder="Menge" class="ingredient-amount w-20 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="text" placeholder="Einheit" value="g" class="ingredient-unit w-16 px-2 py-1 border rounded text-sm">
+                <input type="number" placeholder="Kcal" class="ingredient-kcal w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="number" placeholder="Prot" class="ingredient-protein w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="number" placeholder="Carb" class="ingredient-carbs w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
+                <input type="number" placeholder="Fett" class="ingredient-fat w-16 px-2 py-1 border rounded text-sm" oninput="calcTotals()">
                 <button onclick="this.parentElement.remove(); calcTotals();" class="text-red-500 hover:text-red-700 px-2">
                     <i class="fa-solid fa-trash"></i>
                 </button>
             `;
             document.getElementById('ingredients-container').appendChild(div);
+        }
+
+        window.showIngredientSuggestions = function(input) {
+            const value = input.value.toLowerCase();
+            if(value.length < 1) return;
+            
+            const ingId = input.getAttribute('data-ing-id');
+            const suggestions = Object.keys(NUTRIENT_DATABASE).filter(ing => 
+                ing.includes(value)
+            ).slice(0, 5);
+            
+            const list = document.querySelector(`.autocomplete-list[data-ing-list="${ingId}"]`);
+            if(suggestions.length > 0) {
+                list.innerHTML = suggestions.map(sug => `
+                    <div class="autocomplete-item" onclick="selectIngredient('${sug}', ${ingId})">${sug}</div>
+                `).join('');
+                list.classList.add('active');
+            } else {
+                list.classList.remove('active');
+            }
+        }
+
+        window.hideIngredientSuggestions = function(input) {
+            setTimeout(() => {
+                const ingId = input.getAttribute('data-ing-id');
+                const list = document.querySelector(`.autocomplete-list[data-ing-list="${ingId}"]`);
+                if(list) list.classList.remove('active');
+            }, 200);
+        }
+
+        window.selectIngredient = function(ingredientName, ingId) {
+            const nutrients = getNutrientData(ingredientName);
+            const row = document.getElementById(`ing-${ingId}`);
+            
+            row.querySelector('.ingredient-input').value = ingredientName;
+            
+            if(nutrients) {
+                row.querySelector('.ingredient-unit').value = nutrients.unit;
+                row.querySelector('.ingredient-kcal').value = nutrients.kcal;
+                row.querySelector('.ingredient-protein').value = formatNutrient(nutrients.protein);
+                row.querySelector('.ingredient-carbs').value = formatNutrient(nutrients.carbs);
+                row.querySelector('.ingredient-fat').value = formatNutrient(nutrients.fat);
+                showToast(`Nährwerte für ${ingredientName} automatisch geladen!`);
+            }
+            
+            calcTotals();
+            document.querySelector(`.autocomplete-list[data-ing-list="${ingId}"]`).classList.remove('active');
         }
 
         window.calcTotals = function() {
@@ -593,13 +678,11 @@
             window.activeCreatorTab = 'recipe';
             switchCreatorTab('recipe');
 
-            // Formular mit Daten befüllen
             document.getElementById('new-recipe-title').value = recipe.title;
             document.getElementById('new-recipe-image').value = recipe.imageUrl || '';
             document.getElementById('new-recipe-portions').value = recipe.defaultPortions || 1;
             document.getElementById('new-recipe-instructions').value = recipe.instructions || '';
 
-            // Zutaten laden
             document.getElementById('ingredients-container').innerHTML = '';
             ingId = 0;
             
@@ -610,13 +693,16 @@
                     div.id = `ing-${ingId}`;
                     div.className = "flex flex-wrap gap-2 items-center bg-white p-2 rounded border border-gray-200 shadow-sm";
                     div.innerHTML = `
-                        <input type="text" placeholder="Name" class="flex-1 min-w-[120px] px-2 py-1 border rounded text-sm" value="${ing.name}" oninput="calcTotals()">
-                        <input type="number" placeholder="Menge" class="w-20 px-2 py-1 border rounded text-sm" value="${ing.amount}" oninput="calcTotals()">
-                        <input type="text" placeholder="Einheit" value="${ing.unit}" class="w-16 px-2 py-1 border rounded text-sm">
-                        <input type="number" placeholder="Kcal" class="w-16 px-2 py-1 border rounded text-sm" value="${ing.kcal || 0}" oninput="calcTotals()">
-                        <input type="number" placeholder="Prot" class="w-16 px-2 py-1 border rounded text-sm" value="${ing.protein || 0}" oninput="calcTotals()">
-                        <input type="number" placeholder="Carb" class="w-16 px-2 py-1 border rounded text-sm" value="${ing.carbs || 0}" oninput="calcTotals()">
-                        <input type="number" placeholder="Fett" class="w-16 px-2 py-1 border rounded text-sm" value="${ing.fat || 0}" oninput="calcTotals()">
+                        <div class="ingredient-autocomplete flex-1 min-w-[120px] relative">
+                            <input type="text" placeholder="Name" class="ingredient-input w-full px-2 py-1 border rounded text-sm" data-ing-id="${ingId}" value="${ing.name}" oninput="showIngredientSuggestions(this)">
+                            <div class="autocomplete-list" data-ing-list="${ingId}"></div>
+                        </div>
+                        <input type="number" placeholder="Menge" class="ingredient-amount w-20 px-2 py-1 border rounded text-sm" value="${ing.amount}" oninput="calcTotals()">
+                        <input type="text" placeholder="Einheit" value="${ing.unit}" class="ingredient-unit w-16 px-2 py-1 border rounded text-sm">
+                        <input type="number" placeholder="Kcal" class="ingredient-kcal w-16 px-2 py-1 border rounded text-sm" value="${ing.kcal || 0}" oninput="calcTotals()">
+                        <input type="number" placeholder="Prot" class="ingredient-protein w-16 px-2 py-1 border rounded text-sm" value="${ing.protein || 0}" oninput="calcTotals()">
+                        <input type="number" placeholder="Carb" class="ingredient-carbs w-16 px-2 py-1 border rounded text-sm" value="${ing.carbs || 0}" oninput="calcTotals()">
+                        <input type="number" placeholder="Fett" class="ingredient-fat w-16 px-2 py-1 border rounded text-sm" value="${ing.fat || 0}" oninput="calcTotals()">
                         <button onclick="this.parentElement.remove(); calcTotals();" class="text-red-500 hover:text-red-700 px-2">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -627,7 +713,6 @@
                 addIngredientRow();
             }
 
-            // UI aktualisieren
             document.getElementById('recipe-form-title').textContent = 'Rezept bearbeiten: ' + recipe.title;
             document.getElementById('cancel-edit-btn').classList.remove('hidden');
             document.getElementById('save-recipe-btn').textContent = 'Änderungen speichern';
@@ -642,7 +727,6 @@
             document.getElementById('cancel-edit-btn').classList.add('hidden');
             document.getElementById('save-recipe-btn').textContent = 'Rezept speichern';
             
-            // Formular leeren
             document.getElementById('new-recipe-title').value = '';
             document.getElementById('new-recipe-image').value = '';
             document.getElementById('new-recipe-portions').value = '1';
@@ -658,16 +742,16 @@
 
             const ingredients = [];
             for(let row of document.getElementById('ingredients-container').children) {
-                const ins = row.getElementsByTagName('input');
-                if(ins[0].value) {
+                const inputs = row.getElementsByTagName('input');
+                if(inputs[0].value) {
                     ingredients.push({
-                        name: ins[0].value, 
-                        amount: parseFloat(ins[1].value||0), 
-                        unit: ins[2].value,
-                        kcal: parseFloat(ins[3].value||0), 
-                        protein: parseFloat(ins[4].value||0),
-                        carbs: parseFloat(ins[5].value||0), 
-                        fat: parseFloat(ins[6].value||0)
+                        name: inputs[0].value, 
+                        amount: parseFloat(inputs[1].value||0), 
+                        unit: inputs[2].value,
+                        kcal: parseFloat(inputs[3].value||0), 
+                        protein: parseFloat(inputs[4].value||0),
+                        carbs: parseFloat(inputs[5].value||0), 
+                        fat: parseFloat(inputs[6].value||0)
                     });
                 }
             }
@@ -682,17 +766,14 @@
                 };
 
                 if(window.editingRecipeId) {
-                    // Update existierendes Rezept
                     await window.cloudUpdateDoc('recipes', window.editingRecipeId, recipeData);
                     showToast("Rezept aktualisiert!");
                     window.editingRecipeId = null;
                 } else {
-                    // Neues Rezept speichern
                     await window.cloudAddDoc('recipes', recipeData);
                     showToast("Rezept gespeichert!");
                 }
                 
-                // Formular leeren & Reset
                 cancelEditRecipe();
             } catch (e) {
                 showToast("Fehler beim Speichern!");
@@ -715,7 +796,6 @@
                 
                 showToast("Beitrag gespeichert!");
                 
-                // Formular leeren
                 document.getElementById('new-content-title').value = '';
                 document.getElementById('new-content-image').value = '';
                 document.getElementById('new-content-body').innerHTML = '';
